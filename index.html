@@ -193,7 +193,7 @@
     @keyframes rise{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
   }
 
-  /* ---- add + edit (v8.29-19) ---- */
+  /* ---- add + edit (v8.29-20) ---- */
   .gap.tappable{pointer-events:auto; cursor:pointer}
   .gap.tappable:active{color:var(--accent)}
   .ghost{position:absolute; left:42px; right:0; height:0; display:none; z-index:6; pointer-events:none}
@@ -229,6 +229,19 @@
   .fabhome svg{width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round}
   @media (prefers-reduced-motion:reduce){ .fabhome{transition:none} }
   .fab:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
+  .ptr{
+    position:fixed; left:50%; top:calc(6px + env(safe-area-inset-top)); z-index:45;
+    width:34px; height:34px; margin-left:-17px; border-radius:50%;
+    background:var(--surface); box-shadow:var(--shadow);
+    border:1px solid var(--line); box-sizing:border-box;
+    display:grid; place-items:center; color:var(--accent);
+    transform:translateY(-56px); opacity:0; pointer-events:none;
+  }
+  .ptr svg{width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round}
+  .ptr.settle{transition:transform .3s ease, opacity .3s ease}
+  .ptr.spin svg{animation:ptrspin .9s linear infinite}
+  @keyframes ptrspin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){ .ptr.spin svg{animation:none} .ptr.settle{transition:none} }
   .scrim{position:fixed; inset:0; z-index:35; background:rgba(20,30,28,.28); display:none}
   .scrim.on{display:block}
   .composer{
@@ -310,10 +323,11 @@
 
   <footer>
     Live from Todoist &middot; refreshes automatically. Checking a task off here closes it there too.
-    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-19
+    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-20
   </footer>
 </div>
 
+<div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.5h-4.5"/></svg></div>
 <div class="scrim" id="scrim"></div>
 <div class="fabhome" id="fabhome" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></div>
 <button class="fab" id="fab" aria-label="Add a task">+</button>
@@ -788,7 +802,7 @@
   }
 
   function fetchToday(){
-    fetch(WORKER+"/today?date="+DAY,{headers:{"X-App-Key":APPKEY}})
+    return fetch(WORKER+"/today?date="+DAY,{headers:{"X-App-Key":APPKEY}})
       .then(function(r){
         return r.text().then(function(txt){
           if(!r.ok)throw new Error("Todoist link returned "+r.status+" — "+txt.slice(0,140));
@@ -815,7 +829,7 @@
   document.addEventListener("visibilitychange",function(){ if(!document.hidden) fetchToday(); });
 
 
-  // ---------- add + edit (v8.29-19) ----------
+  // ---------- add + edit (v8.29-20) ----------
   var PKEY="jd2-projects", LPKEY="jd2-lastproj";
   var projects=[], justDragged=0, gh=null, composeMin=null;
   try{projects=JSON.parse(localStorage.getItem(PKEY))||[]}catch(e){}
@@ -1048,6 +1062,71 @@
       });
     });
   }
+
+  // ---- pull down to refresh ----
+  var ptrEl=document.getElementById("ptr");
+  var PULL_MAX=90, PULL_TRIG=62;
+  var pull={active:false,start:0,dist:0,busy:false};
+
+  function scrolledToTop(){
+    return (window.scrollY||document.documentElement.scrollTop||document.body.scrollTop||0)<=0;
+  }
+  function overlayOpen(){
+    return composer.classList.contains("open")||menu.classList.contains("open");
+  }
+  function ptrSet(dist,animate){
+    if(!ptrEl)return;
+    ptrEl.classList.toggle("settle",!!animate);
+    ptrEl.style.transform="translateY("+(dist-56)+"px) rotate("+Math.round(dist*4)+"deg)";
+    ptrEl.style.opacity=String(Math.min(1,dist/38));
+  }
+  function inChrome(t){
+    return !!(t&&t.closest&&t.closest("#fab,#fabhome,.composer,.mode,.gear"));
+  }
+
+  document.addEventListener("touchstart",function(e){
+    if(pull.busy||lifted||overlayOpen())return;
+    if(!e.touches||e.touches.length!==1)return;
+    if(!scrolledToTop()||inChrome(e.target))return;
+    pull.active=true; pull.start=e.touches[0].clientY; pull.dist=0;
+  },{passive:true});
+
+  document.addEventListener("touchmove",function(e){
+    if(!pull.active||!e.touches||!e.touches.length)return;
+    if(lifted||overlayOpen()){pull.active=false; ptrSet(0,true); return;}
+    var dy=e.touches[0].clientY-pull.start;
+    if(dy<=0){
+      if(pull.dist>0){pull.dist=0; ptrSet(0,false);}
+      return;
+    }
+    if(!scrolledToTop()){pull.active=false; ptrSet(0,true); return;}
+    pull.dist=Math.min(PULL_MAX,dy*0.55);
+    ptrSet(pull.dist,false);
+    if(pull.dist>6&&e.cancelable)e.preventDefault();
+  },{passive:false});
+
+  function endPull(){
+    if(!pull.active)return;
+    pull.active=false;
+    if(pull.dist<PULL_TRIG){ ptrSet(0,true); pull.dist=0; return; }
+    pull.busy=true;
+    if(ptrEl)ptrEl.classList.add("spin");
+    ptrSet(52,true);
+    var settle=function(){
+      pull.busy=false; pull.dist=0;
+      if(ptrEl)ptrEl.classList.remove("spin");
+      ptrSet(0,true);
+    };
+    // hold the spinner briefly so a fast refresh does not just flicker
+    var slow=new Promise(function(r){setTimeout(r,420);});
+    var job=fetchToday();
+    Promise.all([slow, job&&job.then?job.catch(function(){}):null]).then(settle,settle);
+  }
+  document.addEventListener("touchend",endPull);
+  document.addEventListener("touchcancel",function(){
+    if(!pull.active)return;
+    pull.active=false; pull.dist=0; ptrSet(0,true);
+  });
 
   fillProjectSelect();
   fetchProjects();
