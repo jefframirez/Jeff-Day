@@ -98,13 +98,20 @@
   .bar{position:absolute; width:5px; border-radius:5px; z-index:2}
   .bar.mine{left:12.5px; background:var(--accent)}
   .bar.ctx{left:12.5px; background:var(--kylee)}
-  .nowline{position:absolute; left:0; right:0; height:0; border-top:1.5px solid var(--now); z-index:2; pointer-events:none; opacity:.7}
+  .nowline{position:absolute; left:0; right:0; height:0; z-index:2; pointer-events:none; opacity:.75}
+  .nowline .ln{position:absolute; left:116px; right:0; top:0; border-top:1.5px solid var(--now)}
   .nowline em{
-    position:absolute; left:40px; top:-9px; font-style:normal; font-size:.72rem; font-weight:700;
-    color:var(--now); background:var(--ground); padding:0 8px;
-    font-variant-numeric:tabular-nums;
+    position:absolute; left:42px; top:-9px; font-style:normal; font-size:.72rem; font-weight:700;
+    color:var(--now); font-variant-numeric:tabular-nums;
   }
-  .nowline i{position:absolute; left:10px; top:-5px; width:10px; height:10px; border-radius:50%; background:var(--now)}
+  .nowline i{position:absolute; left:9.5px; top:-5px; width:10px; height:10px; border-radius:50%; background:var(--now)}
+  /* weather wash */
+  .sky{position:fixed; inset:0; z-index:-1; opacity:0; transition:opacity 1.4s ease; pointer-events:none}
+  .sky.on{opacity:1}
+  .wxnote{
+    font-size:.66rem; font-weight:600; letter-spacing:.04em; color:var(--faint);
+    padding:0 10px 4px; margin-top:-3px;
+  }
   .gap{
     position:absolute; left:42px; font-size:.68rem; font-weight:700; letter-spacing:.16em;
     color:var(--faint); text-transform:uppercase; pointer-events:none; opacity:.8;
@@ -186,6 +193,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
+<div class="sky" id="skyA"></div><div class="sky" id="skyB"></div>
 <div class="wrap">
   <header>
     <div class="titlerow">
@@ -199,6 +207,8 @@
           <button data-mode="auto">Auto &middot; match device</button>
           <button data-mode="light">Light</button>
           <button data-mode="dark">Dark</button>
+          <button data-mode="weather">Weather</button>
+          <div class="wxnote" id="wxnote"></div>
         </div>
       </div>
     </div>
@@ -230,7 +240,7 @@
 
   <footer>
     Drag to move &middot; hold first on touch. Moves live on this device; tell Cathy to make them real in Todoist.
-    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-6
+    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-7
   </footer>
 </div>
 
@@ -239,13 +249,102 @@
   // ---------- appearance ----------
   var MKEY="jeffs-day-mode", root=document.documentElement;
   var mbtns=document.querySelectorAll(".mode button");
-  function applyMode(m){
-    if(m==="light"||m==="dark"){root.setAttribute("data-theme",m);}
-    else{root.removeAttribute("data-theme"); m="auto";}
-    mbtns.forEach(function(b){b.classList.toggle("on",b.dataset.mode===m);});
+  var skyA=document.getElementById("skyA"), skyB=document.getElementById("skyB");
+  var wxEl=document.getElementById("wxnote");
+  var mode="auto";
+
+  // weather → sky palette
+  var BASE={
+    clear:{h:202,s:58}, partly:{h:205,s:34}, overcast:{h:212,s:12},
+    fog:{h:205,s:8}, rain:{h:214,s:22}, snow:{h:208,s:14}, storm:{h:232,s:26}
+  };
+  var LABEL={clear:"clear",partly:"partly cloudy",overcast:"overcast",fog:"fog",rain:"rain",snow:"snow",storm:"storms"};
+  var PH={
+    dawn:  {h:24, w:.55, sm:.9,  sa:6,  lt:90, lb:97, dt:14, db:7},
+    day:   {h:0,  w:0,   sm:1,   sa:0,  lt:88, lb:97, dt:14, db:7},
+    golden:{h:30, w:.7,  sm:.95, sa:10, lt:89, lb:97, dt:15, db:8},
+    dusk:  {h:272,w:.75, sm:.8,  sa:4,  lt:88, lb:96, dt:17, db:8},
+    night: {h:228,w:.85, sm:.6,  sa:2,  lt:88, lb:96, dt:12, db:6}
+  };
+  function wgroup(c){
+    if(c===0)return "clear";
+    if(c===1||c===2)return "partly";
+    if(c===3)return "overcast";
+    if(c===45||c===48)return "fog";
+    if((c>=51&&c<=67)||(c>=80&&c<=82))return "rain";
+    if((c>=71&&c<=77)||c===85||c===86)return "snow";
+    if(c>=95)return "storm";
+    return "partly";
   }
-  var mode="auto"; try{mode=localStorage.getItem(MKEY)||"auto"}catch(e){}
+  function mixHue(a,b,w){var d=((b-a+540)%360)-180; return (a+d*w+360)%360;}
+  function hsl(h,s,l){return "hsl("+Math.round(h)+","+Math.round(s)+"%,"+Math.round(l)+"%)";}
+  function setSky(grad){
+    if(!grad){skyA.classList.remove("on"); skyB.classList.remove("on"); return;}
+    var showing=skyA.classList.contains("on")?skyA:skyB;
+    var hidden=(showing===skyA)?skyB:skyA;
+    hidden.style.background=grad;
+    hidden.classList.add("on"); showing.classList.remove("on");
+  }
+  function clearSky(){
+    ["--ground","--surface","--line"].forEach(function(t){root.style.removeProperty(t)});
+    setSky(null);
+  }
+
+  var wx=null;
+  try{wx=JSON.parse(localStorage.getItem("jd-wx"))||null}catch(e){}
+
+  function updateWxNote(){
+    if(!wxEl)return;
+    wxEl.textContent = wx ? (LABEL[wgroup(wx.code)]+" · "+wx.temp+"°") : "checking sky…";
+  }
+  function fetchWx(force){
+    if(!force && wx && (Date.now()-wx.at) < 30*60*1000) return;
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=34.1975&longitude=-119.1771&current=weather_code,is_day,temperature_2m&daily=sunrise,sunset&timezone=auto")
+      .then(function(r){return r.json()})
+      .then(function(d){
+        wx={at:Date.now(), code:d.current.weather_code, temp:Math.round(d.current.temperature_2m),
+            sunrise:d.daily.sunrise[0], sunset:d.daily.sunset[0]};
+        try{localStorage.setItem("jd-wx",JSON.stringify(wx))}catch(e){}
+        updateWxNote();
+        if(mode==="weather")paintWeather();
+      })["catch"](function(){});
+  }
+  function paintWeather(){
+    if(!wx){root.removeAttribute("data-theme"); setSky(null); fetchWx(true); return;}
+    var now=new Date();
+    var sr=new Date(wx.sunrise), ss=new Date(wx.sunset);
+    var m=now.getHours()*60+now.getMinutes();
+    var srm=sr.getHours()*60+sr.getMinutes(), ssm=ss.getHours()*60+ss.getMinutes();
+    var phase = m<srm-45 ? "night" : m<srm+60 ? "dawn" : m<ssm-75 ? "day" : m<ssm ? "golden" : m<ssm+55 ? "dusk" : "night";
+    var dark = (phase==="night"||phase==="dusk");
+    root.setAttribute("data-theme", dark?"dark":"light");
+    var g=wgroup(wx.code), base=BASE[g], ph=PH[phase];
+    var colorful=Math.min(1,Math.max(.25,base.s/55));
+    // warm/cool phases own the hue; cloud cover only mutes it
+    var h=ph.w>0 ? ph.h : base.h;
+    var s=Math.max(5, Math.min(dark?30:64, ph.w>0 ? base.s*ph.sm+ph.sa*colorful : base.s));
+    var tl=dark?ph.dt:ph.lt, bl=dark?ph.db:ph.lb;
+    var top=hsl(h,s,tl), bot=hsl(h,s*0.5,bl);
+    setSky("linear-gradient(180deg,"+top+" 0%,"+bot+" 58%,"+bot+" 100%)");
+    root.style.setProperty("--ground",bot);
+    root.style.setProperty("--surface", dark?hsl(h,Math.min(14,s*0.4),bl+7):hsl(h,40,99));
+    root.style.setProperty("--line", dark?hsl(h,10,bl+12):hsl(h,22,90));
+  }
+  function applyMode(m){
+    mode=(m==="light"||m==="dark"||m==="weather")?m:"auto";
+    mbtns.forEach(function(b){b.classList.toggle("on",b.dataset.mode===mode);});
+    if(mode==="light"||mode==="dark"){root.setAttribute("data-theme",mode); clearSky();}
+    else if(mode==="auto"){root.removeAttribute("data-theme"); clearSky();}
+    else {paintWeather(); fetchWx(false);}
+  }
+  try{mode=localStorage.getItem(MKEY)||"auto"}catch(e){}
   applyMode(mode);
+  updateWxNote();
+  setInterval(function(){ if(mode==="weather")paintWeather(); },5*60*1000);
+  setInterval(function(){ if(mode==="weather")fetchWx(false); },30*60*1000);
+  document.addEventListener("visibilitychange",function(){
+    if(!document.hidden && mode==="weather"){paintWeather(); fetchWx(false);}
+  });
   var gear=document.getElementById("gear"), menu=document.getElementById("modemenu");
   function closeMenu(){menu.classList.remove("open"); gear.setAttribute("aria-expanded","false");}
   gear.addEventListener("click",function(e){
@@ -376,7 +475,7 @@
 
   // now line
   var nl=document.createElement("div");
-  nl.className="nowline"; nl.innerHTML="<i></i><em></em>";
+  nl.className="nowline"; nl.innerHTML='<i></i><em></em><span class="ln"></span>';
   board.appendChild(nl);
   function today(){
     var d=new Date();
