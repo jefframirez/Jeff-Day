@@ -9,84 +9,131 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Jeff's Day">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f7f6">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141a19">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101514">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,420;9..144,560&family=Albert+Sans:wght@400;500;600&display=swap">
 <style>
   :root{
     --ground:#f4f7f6; --surface:#ffffff; --ink:#25322f; --muted:#63736f;
-    --faint:#8b9995; --line:#dde6e3; --accent:#3e7c74; --accent-soft:#e3edeb;
-    --amber:#a37c33; --amber-soft:#f3ead9; --rail:#cfdbd8; --done:#7fa695;
+    --faint:#96a3a0; --line:#e2eae7; --accent:#3e7c74; --accent-soft:#e3edeb;
+    --amber:#a37c33; --amber-soft:#f3ead9; --rail:#d3ddda; --done:#7fa695;
+    --kylee:#8b7fc7; --family:#c9a13c; --now:#2f7db8;
     --shadow:0 1px 3px rgba(38,58,54,.06),0 8px 24px rgba(38,58,54,.05);
+    --lift:0 6px 24px rgba(38,58,54,.18);
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --ground:#141a19; --surface:#1c2422; --ink:#e6edeb; --muted:#9db0ab;
-      --faint:#7b8d88; --line:#2b3634; --accent:#7dbcb2; --accent-soft:#24322f;
-      --amber:#d3a75f; --amber-soft:#332b1c; --rail:#33403d; --done:#6f9c8b;
-      --shadow:none;
+      --ground:#101514; --surface:#1a2120; --ink:#e6edeb; --muted:#9db0ab;
+      --faint:#6e807b; --line:#242e2c; --accent:#7dbcb2; --accent-soft:#202c2a;
+      --amber:#d3a75f; --amber-soft:#2f2818; --rail:#2c3835; --done:#6f9c8b;
+      --kylee:#a293e0; --family:#d8b45a; --now:#6aa9d8;
+      --shadow:none; --lift:0 6px 24px rgba(0,0,0,.5);
     }
   }
   :root[data-theme="dark"]{
-    --ground:#141a19; --surface:#1c2422; --ink:#e6edeb; --muted:#9db0ab;
-    --faint:#7b8d88; --line:#2b3634; --accent:#7dbcb2; --accent-soft:#24322f;
-    --amber:#d3a75f; --amber-soft:#332b1c; --rail:#33403d; --done:#6f9c8b;
-    --shadow:none;
+    --ground:#101514; --surface:#1a2120; --ink:#e6edeb; --muted:#9db0ab;
+    --faint:#6e807b; --line:#242e2c; --accent:#7dbcb2; --accent-soft:#202c2a;
+    --amber:#d3a75f; --amber-soft:#2f2818; --rail:#2c3835; --done:#6f9c8b;
+    --kylee:#a293e0; --family:#d8b45a; --now:#6aa9d8;
+    --shadow:none; --lift:0 6px 24px rgba(0,0,0,.5);
   }
   body{
     margin:0; background:var(--ground); color:var(--ink);
-    font-family:"Albert Sans",system-ui,sans-serif; font-size:16px; line-height:1.5;
+    font-family:"Albert Sans",system-ui,sans-serif; font-size:16px; line-height:1.45;
     -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;
-    -webkit-tap-highlight-color:transparent; overscroll-behavior-y:none;
+    -webkit-tap-highlight-color:transparent;
     min-height:100dvh;
   }
   .wrap{
     max-width:560px; margin:0 auto;
-    padding:calc(40px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right))
-            calc(64px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    padding:calc(28px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+            calc(56px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
   }
+  .modebar{display:flex; justify-content:flex-end; margin:0 0 14px}
+  .mode{display:flex; gap:2px; background:var(--accent-soft); border-radius:999px; padding:3px}
+  .mode button{
+    font:inherit; font-size:.7rem; font-weight:600; letter-spacing:.04em;
+    color:var(--muted); background:none; border:0; border-radius:999px; padding:4px 10px; cursor:pointer;
+  }
+  .mode button.on{background:var(--surface); color:var(--accent); box-shadow:var(--shadow)}
+  .mode button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+  header{padding:0 4px}
   header h1{
-    font-family:"Fraunces",Georgia,serif; font-weight:560; font-size:1.9rem;
-    margin:0 0 4px; letter-spacing:-.01em; text-wrap:balance;
+    font-family:"Fraunces",Georgia,serif; font-weight:560; font-size:1.8rem;
+    margin:0 0 2px; letter-spacing:-.01em;
   }
-  .sub{color:var(--muted); margin:0 0 10px}
-  .chips{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0}
+  .sub{color:var(--muted); margin:0; font-size:.9rem}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 0}
   .chip{
-    font-size:.78rem; font-weight:600; letter-spacing:.04em;
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:.76rem; font-weight:600; letter-spacing:.03em;
     padding:4px 11px; border-radius:999px; background:var(--accent-soft); color:var(--accent);
   }
+  .chip .dot{width:7px;height:7px;border-radius:50%;background:var(--family)}
   .chip.warm{background:var(--amber-soft); color:var(--amber)}
-  section{margin-top:36px}
-  h2{
-    font-size:.75rem; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
-    color:var(--faint); margin:0 0 14px;
+
+  /* ---- proportional timeline ---- */
+  .board{position:relative; margin-top:26px}
+  .hour{
+    position:absolute; left:0; right:0; border-top:1px solid var(--line);
   }
-  .tl{display:grid; grid-template-columns:58px 14px 1fr; row-gap:0}
-  .t{
-    font-variant-numeric:tabular-nums; font-size:.82rem; font-weight:600;
-    color:var(--muted); padding-top:18px; text-align:right; padding-right:4px;
+  .hour span{
+    position:absolute; top:-9px; left:2px; font-size:.66rem; font-weight:600;
+    letter-spacing:.1em; color:var(--faint); background:var(--ground); padding-right:6px;
+    font-variant-numeric:tabular-nums;
   }
-  .rail{position:relative}
-  .rail::before{content:""; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--rail)}
-  .rail .dot{
-    position:absolute; left:2px; top:24px; width:10px; height:10px; border-radius:50%;
-    background:var(--accent); border:2px solid var(--ground);
+  .rail-line{position:absolute; left:56px; top:0; bottom:0; width:2px; background:var(--rail)}
+  .nowline{position:absolute; left:48px; right:0; height:0; border-top:1.5px solid var(--now); z-index:5; pointer-events:none}
+  .nowline em{
+    position:absolute; left:2px; top:-8px; font-style:normal; font-size:.68rem; font-weight:700;
+    color:var(--now); background:var(--ground); padding:0 4px 0 0;
+    font-variant-numeric:tabular-nums;
   }
-  .rail.soft .dot{background:var(--rail)}
+  .nowline i{position:absolute; left:6px; top:-4.5px; width:8px; height:8px; border-radius:50%; background:var(--now)}
+  .gap{
+    position:absolute; left:76px; font-size:.68rem; font-weight:700; letter-spacing:.12em;
+    color:var(--faint); text-transform:uppercase; pointer-events:none;
+  }
+  .ev.ctx{
+    position:absolute; left:auto; right:16px; z-index:4; text-align:right;
+    max-width:52%; line-height:1.25; opacity:.78; pointer-events:none;
+  }
+  .ctxbar{position:absolute; right:6px; width:4px; border-radius:4px; background:var(--kylee); opacity:.8; z-index:1}
+  .ev.ctx .when{font-size:.68rem; font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums; background:var(--ground); border-radius:6px; padding:0 4px; display:inline-block}
+  .ev.ctx .name{font-size:.82rem; font-weight:500; background:var(--ground); border-radius:6px; padding:0 4px; display:inline-block}
+  .ev.ctx .who{font-size:.62rem; font-weight:700; letter-spacing:.08em; color:var(--kylee); margin-left:5px}
+
   .card{
-    background:var(--surface); border:1px solid var(--line); border-radius:14px;
-    box-shadow:var(--shadow); padding:14px 16px; margin:8px 0 8px 10px;
+    position:absolute; left:70px; right:2px; z-index:3; box-sizing:border-box;
+    background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    box-shadow:var(--shadow); padding:7px 11px; overflow:hidden;
+    display:flex; align-items:flex-start; gap:10px;
+    touch-action:pan-y; cursor:grab; user-select:none; -webkit-user-select:none;
   }
-  .card h3{font-size:1rem; font-weight:600; margin:0}
-  .card p{margin:4px 0 0; font-size:.9rem; color:var(--muted)}
-  .tag{
-    display:inline-block; font-size:.7rem; font-weight:600; letter-spacing:.05em;
-    color:var(--amber); background:var(--amber-soft); border-radius:6px;
-    padding:2px 7px; margin-left:8px; vertical-align:2px;
+  .card.lift{box-shadow:var(--lift); border-color:var(--accent); transform:scale(1.015); z-index:8; cursor:grabbing}
+  .card .dot2{position:absolute; left:-17.5px; top:12px; width:9px; height:9px; border-radius:50%; background:var(--accent); border:2px solid var(--ground)}
+  .card .body{flex:1; min-width:0}
+  .card .when{font-size:.72rem; font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums}
+  .card .name{font-size:.95rem; font-weight:600; line-height:1.3}
+  .card .note2{font-size:.76rem; color:var(--muted); margin-top:1px}
+  .check{
+    width:22px; height:22px; border-radius:8px; border:2px solid var(--rail);
+    flex:none; margin-top:2px; display:grid; place-items:center; color:transparent;
+    font-size:.8rem; cursor:pointer;
+  }
+  .card.done{opacity:.55}
+  .card.done .check{background:var(--done); border-color:var(--done); color:var(--surface)}
+  .card.done .name{text-decoration:line-through; color:var(--faint)}
+  .block{border-left:4px solid var(--accent)}
+
+  section.flat{margin-top:34px; padding:0 4px}
+  h2{
+    font-size:.72rem; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--faint); margin:0 0 12px;
   }
   .list{display:flex; flex-direction:column; gap:8px}
   .item{
     display:flex; align-items:center; gap:12px; background:var(--surface);
-    border:1px solid var(--line); border-radius:12px; padding:11px 14px;
+    border:1px solid var(--line); border-radius:12px; padding:10px 13px;
     box-shadow:var(--shadow); cursor:pointer; user-select:none;
   }
   .item:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
@@ -96,27 +143,31 @@
   }
   .item.done .box{background:var(--done); border-color:var(--done); color:var(--surface)}
   .item.done .lab{color:var(--faint); text-decoration:line-through}
-  .lab{font-size:.92rem}
+  .lab{font-size:.9rem}
   .lab small{color:var(--faint); font-weight:400}
-  .note{color:var(--faint); font-size:.85rem; margin:22px 0 0}
+  .wcard{
+    background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    box-shadow:var(--shadow); padding:12px 14px;
+  }
+  .wcard .name{font-size:.95rem; font-weight:600}
+  .wcard p{margin:3px 0 0; font-size:.85rem; color:var(--muted)}
+  .tag{
+    display:inline-block; font-size:.68rem; font-weight:600; letter-spacing:.05em;
+    color:var(--amber); background:var(--amber-soft); border-radius:6px;
+    padding:2px 7px; margin-left:7px; vertical-align:1px;
+  }
   footer{
-    margin-top:44px; padding-top:18px; border-top:1px solid var(--line);
-    color:var(--faint); font-size:.85rem;
+    margin-top:40px; padding:16px 4px 0; border-top:1px solid var(--line);
+    color:var(--faint); font-size:.82rem;
   }
-  .modebar{display:flex; justify-content:flex-end; margin:0 0 18px}
-  .mode{
-    display:flex; gap:2px; background:var(--accent-soft); border-radius:999px; padding:3px;
+  footer button{
+    font:inherit; font-size:.78rem; font-weight:600; color:var(--accent);
+    background:none; border:0; padding:0; cursor:pointer; text-decoration:underline;
   }
-  .mode button{
-    font:inherit; font-size:.72rem; font-weight:600; letter-spacing:.04em;
-    color:var(--muted); background:none; border:0; border-radius:999px;
-    padding:4px 10px; cursor:pointer;
-  }
-  .mode button.on{background:var(--surface); color:var(--accent); box-shadow:var(--shadow)}
-  .mode button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
   @media (prefers-reduced-motion:no-preference){
     .wrap{animation:rise .5s ease both}
     @keyframes rise{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
+    .card{transition:box-shadow .15s ease, transform .15s ease}
   }
 </style>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -134,93 +185,246 @@
   </div>
   <header>
     <h1>Saturday, August&nbsp;29</h1>
-    <p class="sub">Sunny, high 84. Heat advisory until 8pm, so shade and water on the fun block.</p>
+    <p class="sub">Sunny, high 84 &middot; heat advisory until 8pm</p>
     <div class="chips">
-      <span class="chip">Kids day</span>
+      <span class="chip"><span class="dot"></span>Kids day</span>
       <span class="chip warm">Kylee out 4:00&ndash;8:30</span>
     </div>
   </header>
 
-  <section>
-    <h2>Timeline</h2>
-    <div class="tl">
-      <div class="t">8:00</div><div class="rail"><span class="dot"></span></div>
-      <div class="card"><h3>Slow morning with the kids</h3><p>Breakfast, morning meds with it.</p></div>
+  <div class="board" id="board"></div>
 
-      <div class="t">9:00</div><div class="rail"><span class="dot"></span></div>
-      <div class="card"><h3>Call Enterprise about the convertible<span class="tag">decide</span></h3><p>805&#8209;382&#8209;3307, open Sat morning. Yes &rarr; PCH day. No &rarr; SkyZone (the pass) or Harbor Cove.</p></div>
-
-      <div class="t">10:00</div><div class="rail"><span class="dot"></span></div>
-      <div class="card"><h3>The fun block</h3><p>PCH run top-down, or SkyZone morning + beach. Lunch out with the kids either way.</p></div>
-
-      <div class="t">3:30</div><div class="rail"><span class="dot"></span></div>
-      <div class="card"><h3>Cool-down hour</h3><p>Cave video with Ezra on the couch. AC, water, nobody moves.</p></div>
-
-      <div class="t">5:30</div><div class="rail soft"><span class="dot"></span></div>
-      <div class="card"><h3>Fold the kids&rsquo; clothes</h3><p>15 minutes, kids can help sort.</p></div>
-
-      <div class="t">6:30</div><div class="rail"><span class="dot"></span></div>
-      <div class="card"><h3>Dinner, solo with the kids</h3><p>Kylee&rsquo;s at the movie. Evening antibiotic with dinner.</p></div>
-
-      <div class="t">9:00</div><div class="rail soft"><span class="dot"></span></div>
-      <div class="card"><h3>Kids down &middot; open evening</h3><p>Yours. Deep work if the tank has it, nothing if it doesn&rsquo;t.</p></div>
-    </div>
-  </section>
-
-  <section>
-    <h2>Quick hits &middot; anytime</h2>
+  <section class="flat">
+    <h2>Anytime</h2>
     <div class="list" id="quick">
-      <div class="item" data-k="med-am" tabindex="0"><span class="box">&#10003;</span><span class="lab">Morning meds <small>&middot; antibiotic + sertraline</small></span></div>
       <div class="item" data-k="va" tabindex="0"><span class="box">&#10003;</span><span class="lab">Check the VA app <small>&middot; 2 min</small></span></div>
       <div class="item" data-k="airtag" tabindex="0"><span class="box">&#10003;</span><span class="lab">Replace AirTag batteries</span></div>
       <div class="item" data-k="hair" tabindex="0"><span class="box">&#10003;</span><span class="lab">Cut my hair <small>&middot; fine to slide</small></span></div>
-      <div class="item" data-k="med-pm" tabindex="0"><span class="box">&#10003;</span><span class="lab">Evening antibiotic</span></div>
     </div>
-    <p class="note">Checks here are just for your eyes today. Tell Cathy what&rsquo;s done and it gets closed in Todoist.</p>
   </section>
 
-  <section>
+  <section class="flat">
     <h2>Watching</h2>
-    <div class="card" style="margin-left:0">
-      <h3>Flight to HNL<span class="tag">buy by Tue 9/1</span></h3>
+    <div class="wcard">
+      <span class="name">Flight to HNL</span><span class="tag">buy by Tue 9/1</span>
       <p>Waiting on Jessica about Sun 9/27. No reply by tonight and Cathy drafts the nudge.</p>
     </div>
   </section>
 
-  <footer>Change anything by telling Cathy. Todoist stays the source of truth; this page is the calm view of it.</footer>
+  <footer>
+    Drag a card to move it &middot; hold first on touch. Moves live on this device until you tell Cathy; Todoist stays the source of truth.
+    <br><button id="reset">Reset times to Cathy's plan</button>
+  </footer>
 </div>
 
 <script>
-  const MKEY="jeffs-day-mode";
-  const root=document.documentElement;
-  const btns=document.querySelectorAll(".mode button");
+(function(){
+  // ---------- appearance ----------
+  var MKEY="jeffs-day-mode", root=document.documentElement;
+  var mbtns=document.querySelectorAll(".mode button");
   function applyMode(m){
     if(m==="light"||m==="dark"){root.setAttribute("data-theme",m);}
     else{root.removeAttribute("data-theme"); m="auto";}
-    btns.forEach(b=>b.classList.toggle("on",b.dataset.mode===m));
+    mbtns.forEach(function(b){b.classList.toggle("on",b.dataset.mode===m);});
   }
-  let mode="auto";
-  try{mode=localStorage.getItem(MKEY)||"auto"}catch(e){}
+  var mode="auto"; try{mode=localStorage.getItem(MKEY)||"auto"}catch(e){}
   applyMode(mode);
-  btns.forEach(b=>b.addEventListener("click",()=>{
-    applyMode(b.dataset.mode);
-    try{localStorage.setItem(MKEY,b.dataset.mode)}catch(e){}
-  }));
+  mbtns.forEach(function(b){b.addEventListener("click",function(){
+    applyMode(b.dataset.mode); try{localStorage.setItem(MKEY,b.dataset.mode)}catch(e){}
+  });});
 
-  const KEY="jeffs-day-2026-08-29";
-  let state={};
-  try{state=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){}
-  document.querySelectorAll("#quick .item").forEach(el=>{
-    const k=el.dataset.k;
-    if(state[k])el.classList.add("done");
-    const flip=()=>{
-      el.classList.toggle("done");
-      state[k]=el.classList.contains("done");
-      try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
-    };
-    el.addEventListener("click",flip);
-    el.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();flip();}});
+  // ---------- data ----------
+  var DAY="2026-08-29";
+  var START=7*60, END=23*60+30, PPM=1.2;               // 7:00 -> 23:30
+  var OKEY="jd-overrides-"+DAY, DKEY="jd-done-"+DAY;
+  var overrides={}, done={};
+  try{overrides=JSON.parse(localStorage.getItem(OKEY))||{}}catch(e){}
+  try{done=JSON.parse(localStorage.getItem(DKEY))||{}}catch(e){}
+
+  var items=[
+    {id:"meds",  type:"task",  start:8*60,      dur:15,  name:"Morning meds",  note:"antibiotic + sertraline"},
+    {id:"car",   type:"task",  start:9*60,      dur:15,  name:"Call Enterprise", note:"convertible · 805‑382‑3307"},
+    {id:"fun",   type:"block", start:10*60,     dur:270, name:"The fun block", note:"PCH top-down, or SkyZone + Harbor Cove. Lunch out."},
+    {id:"cave",  type:"task",  start:15*60+30,  dur:60,  name:"Cave video with Ezra", note:"couch, AC, nobody moves"},
+    {id:"fold",  type:"task",  start:17*60+30,  dur:15,  name:"Fold the kids’ clothes", note:"15 min, kids sort"},
+    {id:"din",   type:"block", start:18*60+30,  dur:60,  name:"Dinner, solo with the kids", note:"evening antibiotic with it"},
+    {id:"eve",   type:"block", start:21*60,     dur:120, name:"Kids down · open evening", note:"deep work or nothing, your call"},
+    {id:"walk",  type:"ctx",   start:16*60,     dur:120, name:"Walk w Stacey"},
+    {id:"movie", type:"ctx",   start:18*60+30,  dur:120, name:"Movie w Stacey & Graci"}
+  ];
+  items.forEach(function(it){ if(overrides[it.id]!=null) it.start=overrides[it.id]; });
+
+  var board=document.getElementById("board");
+  board.style.height=((END-START)*PPM)+"px";
+
+  function y(min){return (min-START)*PPM;}
+  function fmt(min){
+    var h=Math.floor(min/60), m=min%60, ap=h>=12?"PM":"AM";
+    var hh=h%12; if(hh===0)hh=12;
+    return hh+":"+(m<10?"0":"")+m+" "+ap;
+  }
+  function fmtDur(min){
+    var h=Math.floor(min/60), m=min%60, s="";
+    if(h)s+=h+"H "; if(m)s+=m+"M";
+    return s.trim();
+  }
+
+  // hour lines
+  for(var t=Math.ceil(START/60)*60;t<=END;t+=60){
+    var hl=document.createElement("div");
+    hl.className="hour"; hl.style.top=y(t)+"px";
+    var lab=document.createElement("span");
+    var hr=Math.floor(t/60)%12; if(hr===0)hr=12;
+    lab.textContent=hr+(t<12*60?" AM":" PM");
+    hl.appendChild(lab); board.appendChild(hl);
+  }
+  var rl=document.createElement("div"); rl.className="rail-line"; board.appendChild(rl);
+
+  // elements
+  items.forEach(function(it){
+    var el;
+    if(it.type==="ctx"){
+      var bar=document.createElement("div");
+      bar.className="ctxbar";
+      bar.style.top=(y(it.start)+2)+"px";
+      bar.style.height=Math.max(18,it.dur*PPM-4)+"px";
+      board.appendChild(bar);
+      el=document.createElement("div");
+      el.className="ev ctx";
+      el.innerHTML='<div class="when"></div><div class="name">'+it.name+'<span class="who">KYLEE</span></div>';
+    }else{
+      el=document.createElement("div");
+      el.className="card"+(it.type==="block"?" block":"")+(done[it.id]?" done":"");
+      el.innerHTML='<span class="dot2"></span><div class="body"><div class="when"></div><div class="name">'+it.name+'</div>'+(it.note?'<div class="note2">'+it.note+'</div>':'')+'</div><span class="check" role="checkbox" tabindex="0" aria-label="done">✓</span>';
+      var chk=el.querySelector(".check");
+      chk.addEventListener("click",function(ev){
+        ev.stopPropagation();
+        el.classList.toggle("done");
+        done[it.id]=el.classList.contains("done");
+        try{localStorage.setItem(DKEY,JSON.stringify(done))}catch(e){}
+      });
+      chk.addEventListener("pointerdown",function(ev){ev.stopPropagation();});
+      makeDraggable(el,it);
+    }
+    it.el=el; board.appendChild(el);
+    place(it);
   });
+
+  function place(it){
+    it.el.style.top=(it.type==="ctx"?y(it.start+it.dur/2)-18:y(it.start))+"px";
+    if(it.type==="block")it.el.style.height=(it.dur*PPM-8)+"px";
+    var w=it.el.querySelector(".when");
+    if(w)w.textContent=it.type==="ctx"?fmt(it.start)+" – "+fmt(it.start+it.dur):fmt(it.start)+(it.dur>=45?" – "+fmt(it.start+it.dur):"");
+  }
+
+  // open-time gaps (Jeff's items only)
+  var gapEls=[];
+  function drawGaps(){
+    gapEls.forEach(function(g){g.remove()}); gapEls=[];
+    var mine=items.filter(function(i){return i.type!=="ctx"}).slice()
+      .sort(function(a,b){return a.start-b.start});
+    var edges=[], cur=START;
+    mine.forEach(function(i){
+      if(i.start-cur>=45)edges.push([cur,i.start]);
+      cur=Math.max(cur,i.start+i.dur);
+    });
+    if(END-cur>=45)edges.push([cur,END]);
+    edges.forEach(function(e){
+      var g=document.createElement("div");
+      g.className="gap"; g.textContent="+ "+fmtDur(e[1]-e[0])+" open";
+      g.style.top=(y((e[0]+e[1])/2)-7)+"px";
+      board.appendChild(g); gapEls.push(g);
+    });
+  }
+  drawGaps();
+
+  // now line
+  function today(){
+    var d=new Date();
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
+  var nl=document.createElement("div");
+  nl.className="nowline"; nl.innerHTML="<i></i><em></em>";
+  board.appendChild(nl);
+  function tick(){
+    if(today()!==DAY){nl.style.display="none";return;}
+    var d=new Date(), m=d.getHours()*60+d.getMinutes();
+    if(m<START||m>END){nl.style.display="none";return;}
+    nl.style.display="block"; nl.style.top=y(m)+"px";
+    nl.querySelector("em").textContent=fmt(m);
+  }
+  tick(); setInterval(tick,30000);
+
+  // ---------- drag ----------
+  var lifted=null;
+  document.addEventListener("touchmove",function(e){ if(lifted)e.preventDefault(); },{passive:false});
+  function snap(min){return Math.round(min/15)*15;}
+  function makeDraggable(el,it){
+    var startY=0, origStart=0, timer=null, active=false, moved=false;
+    el.addEventListener("pointerdown",function(e){
+      if(e.button)return;
+      startY=e.clientY; origStart=it.start; moved=false; active=false;
+      if(e.pointerType==="mouse"){lift();}
+      else{timer=setTimeout(lift,320);}
+      function lift(){
+        active=true; lifted=el; el.classList.add("lift");
+        try{el.setPointerCapture(e.pointerId)}catch(err){}
+      }
+      function onMove(ev){
+        var dy=ev.clientY-startY;
+        if(!active){
+          if(Math.abs(dy)>10){clearTimeout(timer); cleanup();}  // user is scrolling
+          return;
+        }
+        moved=true;
+        var ns=snap(origStart+dy/PPM);
+        ns=Math.max(START,Math.min(END-it.dur,ns));
+        if(ns!==it.start){it.start=ns; place(it);}
+      }
+      function onUp(){
+        clearTimeout(timer);
+        if(active){
+          el.classList.remove("lift"); lifted=null;
+          if(moved){
+            overrides[it.id]=it.start;
+            try{localStorage.setItem(OKEY,JSON.stringify(overrides))}catch(e2){}
+            drawGaps();
+          }
+        }
+        cleanup();
+      }
+      function cleanup(){
+        document.removeEventListener("pointermove",onMove);
+        document.removeEventListener("pointerup",onUp);
+        document.removeEventListener("pointercancel",onUp);
+      }
+      document.addEventListener("pointermove",onMove);
+      document.addEventListener("pointerup",onUp);
+      document.addEventListener("pointercancel",onUp);
+    });
+  }
+
+  // reset
+  document.getElementById("reset").addEventListener("click",function(){
+    try{localStorage.removeItem(OKEY)}catch(e){}
+    location.reload();
+  });
+
+  // anytime tray
+  var QKEY="jd-quick-"+DAY, qs={};
+  try{qs=JSON.parse(localStorage.getItem(QKEY))||{}}catch(e){}
+  document.querySelectorAll("#quick .item").forEach(function(el){
+    var k=el.dataset.k;
+    if(qs[k])el.classList.add("done");
+    function flip(){
+      el.classList.toggle("done");
+      qs[k]=el.classList.contains("done");
+      try{localStorage.setItem(QKEY,JSON.stringify(qs))}catch(e){}
+    }
+    el.addEventListener("click",flip);
+    el.addEventListener("keydown",function(e){if(e.key===" "||e.key==="Enter"){e.preventDefault();flip();}});
+  });
+})();
 </script>
 </body>
 </html>
