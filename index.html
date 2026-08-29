@@ -223,11 +223,7 @@
 
   <section class="flat">
     <h2>Anytime</h2>
-    <div class="list" id="quick">
-      <div class="item" data-k="va" tabindex="0"><span class="box">&#10003;</span><span class="lab">Check the VA app <small>&middot; 2 min</small></span></div>
-      <div class="item" data-k="airtag" tabindex="0"><span class="box">&#10003;</span><span class="lab">Replace AirTag batteries</span></div>
-      <div class="item" data-k="hair" tabindex="0"><span class="box">&#10003;</span><span class="lab">Cut my hair</span></div>
-    </div>
+    <div class="list" id="quick"></div>
   </section>
 
   <section class="flat">
@@ -239,8 +235,8 @@
   </section>
 
   <footer>
-    Drag to move &middot; hold first on touch. Checking a task off here closes it in Todoist.
-    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-12
+    Live from Todoist &middot; refreshes automatically. Checking a task off here closes it there too.
+    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-13
   </footer>
 </div>
 
@@ -392,7 +388,7 @@
   // ---------- data ----------
   var DAY="2026-08-29";
   var START=7*60, END=23*60, PPM=1.05;
-  var OKEY="jd2-overrides-"+DAY, DKEY="jd2-done-"+DAY;
+  var OKEY="jd2-overrides-"+DAY, DKEY="jd2-done-"+DAY, CKEY="jd2-cache-"+DAY;
   var overrides={}, done={};
   try{overrides=JSON.parse(localStorage.getItem(OKEY))||{}}catch(e){}
   try{done=JSON.parse(localStorage.getItem(DKEY))||{}}catch(e){}
@@ -410,24 +406,18 @@
     }catch(e){console.error("todoist sync failed",e);}
   }
 
-  // bar:true draws a duration bar on the rail
-  var items=[
-    {id:"meds", type:"task", start:8*60,     dur:30,  name:"Breakfast · morning meds", tid:["6hPH75mr2mjH69Jq","6hPH765PG6fcwRQq"]},
-    {id:"car",  type:"task", start:9*60,     dur:15,  name:"Call Enterprise re convertible", tid:["6hPJ6C924PJxcCRv"]},
-    {id:"fun",  type:"task", start:10*60,    dur:270, bar:true, name:"Fun block · PCH or SkyZone + beach", tid:["6hPJ6C8CxRqG375v"]},
-    {id:"snk1", type:"task", start:10*60+30, dur:15,  name:"Snack round 1", tid:["6hPJ6CG6RMMjc3Hv"]},
-    {id:"lunch",type:"task", start:12*60+30, dur:30,  name:"Lunch out with the kids", tid:["6hPJ6C9Qm33hg73M"]},
-    {id:"snk2", type:"task", start:15*60,    dur:15,  name:"Snack round 2", tid:["6hPJ6CHHVfGM44WM"]},
-    {id:"cave", type:"task", start:15*60+30, dur:60,  bar:true, name:"Cave video with Ezra", tid:["6hPH75p6hc4wJMxM"]},
-    {id:"fold", type:"task", start:17*60+30, dur:15,  name:"Fold the kids’ clothes", tid:["6hPH75wJJ6PhpmQv"]},
-    {id:"din",  type:"task", start:18*60+30, dur:60,  bar:true, name:"Dinner with the kids · evening antibiotic", tid:["6hPH75xFFfWqPmJq"]},
-    {id:"eve",  type:"task", start:21*60,    dur:0,   name:"Kids down · open evening"},
-    {id:"walk", type:"ctx",  start:16*60,    dur:120, bar:true, name:"Walk w Stacey"},
-    {id:"movie",type:"ctx",  start:18*60+30, dur:120, bar:true, name:"Movie w Stacey & Graci"}
+  // Kylee/Ryder blocks come from Apple Calendar, not Todoist — Cathy still seeds these per day.
+  var ctxItems=[
+    {id:"walk", type:"ctx", start:16*60,    dur:120, bar:true, name:"Walk w Stacey"},
+    {id:"movie",type:"ctx", start:18*60+30, dur:120, bar:true, name:"Movie w Stacey & Graci"}
   ];
-  items.forEach(function(it){ if(overrides[it.id]!=null) it.start=overrides[it.id]; });
+
+  // task-type rows are pulled live from Todoist below
+  var items=[], liveTimed=[], liveAnytime=[];
 
   var board=document.getElementById("board");
+  var quickList=document.getElementById("quick");
+  var e1,e2,nl;
   function y(min){return (min-START)*PPM+14;}
   function fmt(min){
     var h=Math.floor(min/60), m=min%60, ap=h>=12?"PM":"AM";
@@ -439,14 +429,16 @@
     if(h)s+=h+"H "; if(m)s+=m+"M";
     return s.trim();
   }
+  function timeToMinutes(iso){
+    var d=new Date(iso);
+    return d.getHours()*60+d.getMinutes();
+  }
+  function buildTaskItem(t){
+    var dur=t.durationMin||20;
+    return {id:"td-"+t.id, type:"task", start:timeToMinutes(t.due), dur:dur, bar:dur>=45, name:t.content, tid:[t.id]};
+  }
 
-  // day edges + rail
-  var rl=document.createElement("div"); rl.className="rail-line"; board.appendChild(rl);
-  var e1=document.createElement("div"); e1.className="edge"; e1.textContent="7 AM"; e1.style.top="0px"; board.appendChild(e1);
-  var e2=document.createElement("div"); e2.className="edge"; e2.textContent="11 PM"; board.appendChild(e2);
-
-  // build elements
-  items.forEach(function(it){
+  function renderItemEl(it){
     if(it.bar){
       it.barEl=document.createElement("div");
       it.barEl.className="bar "+(it.type==="ctx"?"ctx":"mine");
@@ -454,10 +446,13 @@
     }
     var el=document.createElement("div");
     el.className="titem "+(it.type==="ctx"?"ctx":"timed")+(done[it.id]?" done":"");
-    var who=it.type==="ctx"?'<span class="who">KYLEE</span>':"";
-    var chk=it.type==="ctx"?"":'<button class="check" aria-label="done">✓</button>';
-    el.innerHTML='<span class="dot2"></span><div class="body"><div class="when"></div><div class="name">'+it.name+who+'</div></div>'+chk;
-    if(it.type!=="ctx"){
+    el.innerHTML='<span class="dot2"></span><div class="body"><div class="when"></div><div class="name"></div></div>'+(it.type==="ctx"?"":'<button class="check" aria-label="done">✓</button>');
+    var nameEl=el.querySelector(".name");
+    nameEl.textContent=it.name;
+    if(it.type==="ctx"){
+      var who=document.createElement("span"); who.className="who"; who.textContent="KYLEE";
+      nameEl.appendChild(who);
+    }else{
       var c=el.querySelector(".check");
       c.addEventListener("click",function(ev){
         ev.stopPropagation();
@@ -471,7 +466,25 @@
       makeDraggable(el,it);
     }
     it.el=el; board.appendChild(el);
-  });
+  }
+
+  function renderAnytimeEl(t){
+    var el=document.createElement("div");
+    el.className="item"+(done["td-"+t.id]?" done":"");
+    el.tabIndex=0;
+    el.innerHTML='<span class="box">&#10003;</span><span class="lab"></span>';
+    el.querySelector(".lab").textContent=t.content;
+    function flip(){
+      el.classList.toggle("done");
+      var isDone=el.classList.contains("done");
+      done["td-"+t.id]=isDone;
+      try{localStorage.setItem(DKEY,JSON.stringify(done))}catch(e){}
+      syncTodoist([t.id],isDone);
+    }
+    el.addEventListener("click",flip);
+    el.addEventListener("keydown",function(e){if(e.key===" "||e.key==="Enter"){e.preventDefault();flip();}});
+    quickList.appendChild(el);
+  }
 
   var gapEls=[];
   function layout(){
@@ -517,15 +530,12 @@
     tick();
   }
 
-  // now line
-  var nl=document.createElement("div");
-  nl.className="nowline"; nl.innerHTML='<i></i><em></em><span class="ln"></span>';
-  board.appendChild(nl);
   function today(){
     var d=new Date();
     return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
   }
   function tick(){
+    if(!nl)return;
     if(today()!==DAY){nl.style.display="none";return;}
     var d=new Date(), m=d.getHours()*60+d.getMinutes();
     if(m<START||m>END){nl.style.display="none";return;}
@@ -587,25 +597,48 @@
     location.reload();
   });
 
-  // anytime tray
-  var QKEY="jd-quick-"+DAY, qs={};
-  var QTIDS={va:["6hMhwfG7437HQxvq"], airtag:["6gg4VWf69cgP9qXq"], hair:["6hPH75mC53Vr3jgq"]};
-  try{qs=JSON.parse(localStorage.getItem(QKEY))||{}}catch(e){}
-  document.querySelectorAll("#quick .item").forEach(function(el){
-    var k=el.dataset.k;
-    if(qs[k])el.classList.add("done");
-    function flip(){
-      el.classList.toggle("done");
-      var isDone=el.classList.contains("done");
-      qs[k]=isDone;
-      try{localStorage.setItem(QKEY,JSON.stringify(qs))}catch(e){}
-      syncTodoist(QTIDS[k],isDone);
-    }
-    el.addEventListener("click",flip);
-    el.addEventListener("keydown",function(e){if(e.key===" "||e.key==="Enter"){e.preventDefault();flip();}});
-  });
+  // ---------- render + live fetch ----------
+  function render(){
+    board.innerHTML=""; quickList.innerHTML="";
+    var rl=document.createElement("div"); rl.className="rail-line"; board.appendChild(rl);
+    e1=document.createElement("div"); e1.className="edge"; e1.textContent="7 AM"; e1.style.top="0px"; board.appendChild(e1);
+    e2=document.createElement("div"); e2.className="edge"; e2.textContent="11 PM"; board.appendChild(e2);
+    nl=document.createElement("div"); nl.className="nowline"; nl.innerHTML='<i></i><em></em><span class="ln"></span>'; board.appendChild(nl);
 
-  layout();
+    items=ctxItems.concat(liveTimed);
+    items.forEach(function(it){ if(overrides[it.id]!=null) it.start=overrides[it.id]; });
+    items.forEach(renderItemEl);
+    liveAnytime.forEach(renderAnytimeEl);
+
+    layout();
+  }
+
+  function applyTasks(tasks){
+    liveTimed=[]; liveAnytime=[];
+    tasks.forEach(function(t){
+      if(t.allDay) liveAnytime.push(t); else liveTimed.push(buildTaskItem(t));
+    });
+    render();
+  }
+
+  function fetchToday(){
+    fetch(WORKER+"/today?date="+DAY,{headers:{"X-App-Key":APPKEY}})
+      .then(function(r){ if(!r.ok)throw new Error("status "+r.status); return r.json(); })
+      .then(function(data){
+        var tasks=data.tasks||[];
+        try{localStorage.setItem(CKEY,JSON.stringify(tasks))}catch(e){}
+        applyTasks(tasks);
+      })
+      .catch(function(e){ console.error("live fetch failed",e); });
+  }
+
+  var cached=null;
+  try{cached=JSON.parse(localStorage.getItem(CKEY))}catch(e){}
+  if(cached){ applyTasks(cached); } else { render(); }
+  fetchToday();
+  setInterval(fetchToday, 3*60*1000);
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden) fetchToday(); });
+
   window.addEventListener("resize",layout);
 })();
 </script>
