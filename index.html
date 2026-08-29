@@ -48,7 +48,8 @@
     padding:calc(28px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right))
             calc(56px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
   }
-  .titlerow{display:flex; align-items:flex-start; justify-content:space-between; gap:14px}
+  .titlerow{display:flex; align-items:flex-start; justify-content:space-between; gap:10px}
+  .titlerow h1{flex:1; min-width:0}
   .modebar{position:relative; flex:none; margin:-4px -6px 0 0; z-index:20}
   .gear{
     width:34px; height:34px; border-radius:50%; border:0; cursor:pointer;
@@ -90,6 +91,60 @@
     margin:12px 0 0; padding:8px 11px; border-radius:9px;
     background:var(--amber-soft); color:var(--amber);
     font-size:.78rem; font-weight:600; line-height:1.35;
+  }
+
+  /* ---- view toggle ---- */
+  .vtog{
+    display:inline-flex; gap:2px; padding:2px; border-radius:9px;
+    background:var(--accent-soft); flex:none; margin-top:2px;
+  }
+  .vtog button{
+    width:30px; height:26px; border:0; border-radius:7px; padding:0; cursor:pointer;
+    background:none; color:var(--muted); display:grid; place-items:center;
+  }
+  .vtog button.on{background:var(--surface); color:var(--accent); box-shadow:var(--shadow)}
+  .vtog svg{width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round}
+  .vtog button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+
+  /* ---- agenda view ---- */
+  .agenda{margin-top:26px}
+  .ag{padding:0 2px; margin:0 0 22px}
+  .ag-when{
+    font-size:.72rem; font-weight:700; letter-spacing:.06em; color:var(--accent);
+    font-variant-numeric:tabular-nums; margin-bottom:3px;
+  }
+  .ag.ctx .ag-when{color:var(--kylee)}
+  .ag-head{display:flex; align-items:flex-start; gap:11px}
+  .ag-name{font-size:1.06rem; font-weight:600; letter-spacing:.01em; flex:1; min-width:0}
+  .ag.done .ag-name{text-decoration:line-through; color:var(--faint)}
+  .ag.done{opacity:.5}
+  .ag.ctx .ag-name{font-weight:500; color:var(--muted)}
+  .ag .check{margin-top:1px}
+  .ag-subs{list-style:none; margin:7px 0 0; padding:0 0 0 35px}
+  .ag-subs li{display:flex; align-items:flex-start; gap:9px; padding:3px 0}
+  .ag-subs .sbox{
+    width:15px; height:15px; border-radius:5px; background:var(--surface); border:0;
+    box-shadow:inset 0 0 0 1.4px var(--rail); flex:none; margin-top:3px;
+    display:grid; place-items:center; color:transparent; font-size:.6rem; cursor:pointer; padding:0;
+  }
+  .ag-subs li.done .sbox{background:var(--done); box-shadow:none; color:var(--surface)}
+  .ag-subs li.done .stext{text-decoration:line-through; color:var(--faint)}
+  .stext{font-size:.92rem; color:var(--muted); line-height:1.35}
+  .ag-open{
+    font-size:.74rem; font-weight:600; color:var(--faint);
+    padding:0 2px; margin:0 0 22px; opacity:.85;
+    cursor:pointer;
+  }
+  .ag-now{display:flex; align-items:center; gap:9px; margin:0 0 22px; padding:0 2px}
+  .ag-now .lbl{
+    font-size:.6rem; font-weight:700; color:var(--now); font-variant-numeric:tabular-nums;
+    letter-spacing:.02em;
+  }
+  .ag-now .rule{flex:1; border-top:1px solid var(--now); opacity:.3}
+  .ag-empty{color:var(--faint); font-size:.9rem; padding:0 2px}
+  .ag .who{
+    font-size:.62rem; font-weight:700; letter-spacing:.08em; color:var(--kylee);
+    margin-left:7px; vertical-align:2px;
   }
 
   /* ---- timeline ---- */
@@ -193,7 +248,7 @@
     @keyframes rise{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
   }
 
-  /* ---- add + edit (v8.29-20) ---- */
+  /* ---- add + edit (v8.29-22) ---- */
   .gap.tappable{pointer-events:auto; cursor:pointer}
   .gap.tappable:active{color:var(--accent)}
   .ghost{position:absolute; left:42px; right:0; height:0; display:none; z-index:6; pointer-events:none}
@@ -284,6 +339,10 @@
   <header>
     <div class="titlerow">
       <h1>Saturday, August&nbsp;29</h1>
+      <div class="vtog" id="vtog" role="group" aria-label="View">
+        <button data-view="rail" aria-label="Timeline view"><svg viewBox="0 0 24 24"><path d="M7 3v18"/><circle cx="7" cy="8" r="2.1"/><circle cx="7" cy="16" r="2.1"/><path d="M12 8h7M12 16h7"/></svg></button>
+        <button data-view="agenda" aria-label="List view"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h11"/></svg></button>
+      </div>
       <div class="modebar">
         <button class="gear" id="gear" aria-label="Settings" aria-expanded="false">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.6a1.9 1.9 0 0 1 0-3.2l1-.66-1.5-2.6-1.14.44a1.9 1.9 0 0 1-2.6-1.1L14.7 4h-3l-.46 2.48a1.9 1.9 0 0 1-2.6 1.1L7.5 7.14l-1.5 2.6 1 .66a1.9 1.9 0 0 1 0 3.2l-1 .66 1.5 2.6 1.14-.44a1.9 1.9 0 0 1 2.6 1.1L11.7 20h3l.46-2.48a1.9 1.9 0 0 1 2.6-1.1l1.14.44 1.5-2.6z"/></svg>
@@ -307,6 +366,7 @@
   </header>
 
   <div class="board" id="board"></div>
+  <div class="agenda" id="agenda" hidden></div>
 
   <section class="flat">
     <h2>Anytime</h2>
@@ -323,7 +383,7 @@
 
   <footer>
     Live from Todoist &middot; refreshes automatically. Checking a task off here closes it there too.
-    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-20
+    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-22
   </footer>
 </div>
 
@@ -502,6 +562,8 @@
   var START=7*60, END=23*60, PPM=1.05;
   var OKEY="jd2-overrides-"+DAY, DKEY="jd2-done-"+DAY, CKEY="jd2-cache-"+DAY;
   var overrides={}, done={};
+  var VKEY="jeffs-day-view", view="rail";
+  try{ if(localStorage.getItem(VKEY)==="agenda")view="agenda"; }catch(e){}
   try{overrides=JSON.parse(localStorage.getItem(OKEY))||{}}catch(e){}
   try{done=JSON.parse(localStorage.getItem(DKEY))||{}}catch(e){}
 
@@ -557,6 +619,23 @@
     var hh=h%12; if(hh===0)hh=12;
     return hh+":"+(m<10?"0":"")+m+" "+ap;
   }
+  // A stretch with nothing in it, mine or Kylee's, clipped so it never
+  // offers time that has already gone by. Shared by both views.
+  function openWindows(){
+    var busy=items.slice().sort(function(a,b){return a.start-b.start});
+    var nb=nowMin(), floorMin=(nb!=null)?Math.max(START,nb):START;
+    var edges=[], cur=START;
+    function pushWin(a,b){
+      a=Math.max(a,floorMin);
+      if(b-a>=60)edges.push([a,b]);
+    }
+    busy.forEach(function(i){
+      pushWin(cur,i.start);
+      cur=Math.max(cur,i.start+i.dur);
+    });
+    pushWin(cur,END);
+    return edges;
+  }
   function fmtGap(min){
     var h=Math.round(min/30)/2;              // nearest half hour
     if(h<1)return null;
@@ -574,7 +653,8 @@
   }
   function buildTaskItem(t){
     var dur=t.durationMin||20;
-    return {id:"td-"+t.id, type:"task", start:timeToMinutes(t.due), dur:dur, bar:dur>=45, name:t.content, tid:[t.id]};
+    return {id:"td-"+t.id, type:"task", start:timeToMinutes(t.due), dur:dur, bar:dur>=45,
+            name:t.content, tid:[t.id], subs:t.subtasks||[]};
   }
 
   function renderItemEl(it){
@@ -633,8 +713,113 @@
     quickList.appendChild(el);
   }
 
+  var agendaEl=document.getElementById("agenda");
+
+  function buildAgendaBlock(it){
+    var box=document.createElement("div");
+    box.className="ag"+(it.type==="ctx"?" ctx":"")+(done[it.id]?" done":"");
+    var when=document.createElement("div");
+    when.className="ag-when";
+    when.textContent=(it.dur>=45)?fmt(it.start)+" \u2013 "+fmt(it.start+it.dur):fmt(it.start);
+    box.appendChild(when);
+
+    var head=document.createElement("div"); head.className="ag-head";
+    if(it.type!=="ctx"){
+      var c=document.createElement("button");
+      c.className="check"; c.setAttribute("aria-label","done"); c.innerHTML="&#10003;";
+      c.addEventListener("click",function(ev){
+        ev.stopPropagation();
+        box.classList.toggle("done");
+        var isDone=box.classList.contains("done");
+        done[it.id]=isDone;
+        try{localStorage.setItem(DKEY,JSON.stringify(done))}catch(e){}
+        syncTodoist(it.tid,isDone);
+      });
+      head.appendChild(c);
+    }
+    var nm=document.createElement("div"); nm.className="ag-name"; nm.textContent=it.name;
+    if(it.type==="ctx"){
+      var who=document.createElement("span"); who.className="who"; who.textContent="KYLEE";
+      nm.appendChild(who);
+    }
+    head.appendChild(nm);
+    box.appendChild(head);
+    if(it.type!=="ctx")wireTitleEdit(nm,it);
+
+    var subs=it.subs||[];
+    if(subs.length){
+      var ul=document.createElement("ul"); ul.className="ag-subs";
+      subs.forEach(function(s){
+        var sid="td-"+s.id;
+        var li=document.createElement("li");
+        if(done[sid])li.className="done";
+        var b=document.createElement("button");
+        b.className="sbox"; b.setAttribute("aria-label","done"); b.innerHTML="&#10003;";
+        var tx=document.createElement("span"); tx.className="stext"; tx.textContent=s.content;
+        b.addEventListener("click",function(ev){
+          ev.stopPropagation();
+          li.classList.toggle("done");
+          var sd=li.classList.contains("done");
+          done[sid]=sd;
+          try{localStorage.setItem(DKEY,JSON.stringify(done))}catch(e){}
+          syncTodoist([s.id],sd);
+        });
+        tx.addEventListener("click",function(ev){
+          ev.stopPropagation();
+          startEdit(tx,s.content,function(next){
+            s.content=next; tx.textContent=next; pushRename(s.id,next);
+          });
+        });
+        li.appendChild(b); li.appendChild(tx); ul.appendChild(li);
+      });
+      box.appendChild(ul);
+    }
+    return box;
+  }
+
+  function renderAgenda(){
+    var list=items.slice().sort(function(a,b){
+      return a.start-b.start||((a.type==="ctx")-(b.type==="ctx"));
+    });
+    var wins=openWindows(), nb=nowMin(), nowDrawn=false;
+
+    function drawNowBefore(min){
+      if(nowDrawn||nb==null||nb>min)return;
+      nowDrawn=true;
+      var n=document.createElement("div"); n.className="ag-now";
+      n.innerHTML='<span class="lbl"></span><span class="rule"></span>';
+      n.querySelector(".lbl").textContent=fmt(nb).replace(/ [AP]M$/,"");
+      agendaEl.appendChild(n);
+    }
+    function drawWinsBefore(min){
+      while(wins.length&&wins[0][0]<min){
+        var w=wins.shift(), label=fmtGap(w[1]-w[0]);
+        if(!label)continue;
+        var g=document.createElement("div");
+        g.className="ag-open"; g.textContent=label;
+        (function(at){g.addEventListener("click",function(){openComposer(snap(at+15));});})(w[0]);
+        agendaEl.appendChild(g);
+      }
+    }
+
+    list.forEach(function(it){
+      drawNowBefore(it.start);
+      drawWinsBefore(it.start);
+      agendaEl.appendChild(buildAgendaBlock(it));
+    });
+    drawNowBefore(END+1);
+    drawWinsBefore(END+1);
+
+    if(!list.length&&!agendaEl.children.length){
+      var em=document.createElement("div");
+      em.className="ag-empty"; em.textContent="Nothing scheduled today.";
+      agendaEl.appendChild(em);
+    }
+  }
+
   var gapEls=[];
   function layout(){
+    if(view==="agenda"||!e1)return;
     if(e1)e1.textContent=edgeLabel(START);
     if(e2)e2.textContent=edgeLabel(END);
     // bars + when labels at true time
@@ -660,20 +845,7 @@
     e2.style.top=(bottom+4)+"px";
     // open gaps between MY commitments
     gapEls.forEach(function(g){g.remove()}); gapEls=[];
-    // an open window is a stretch with nothing in it, mine or Kylee's
-    var busy=items.slice().sort(function(a,b){return a.start-b.start});
-    // never offer time that has already gone by
-    var nb=nowMin(), floorMin=(nb!=null)?Math.max(START,nb):START;
-    var edges=[], cur=START;
-    function pushWin(a,b){
-      a=Math.max(a,floorMin);
-      if(b-a>=60)edges.push([a,b]);
-    }
-    busy.forEach(function(i){
-      pushWin(cur,i.start);
-      cur=Math.max(cur,i.start+i.dur);
-    });
-    pushWin(cur,END);
+    var edges=openWindows();
     function clashes(py){
       return sorted.some(function(it){
         return py>it.top-14&&py<it.top+(it.el.offsetHeight||44);
@@ -770,16 +942,27 @@
 
   // ---------- render + live fetch ----------
   function render(){
-    board.innerHTML=""; quickList.innerHTML="";
+    board.innerHTML=""; quickList.innerHTML=""; agendaEl.innerHTML="";
+    items=ctxItems.concat(liveTimed);
+    items.forEach(function(it){ if(overrides[it.id]!=null) it.start=overrides[it.id]; });
+    recomputeSpan();
+
+    if(view==="agenda"){
+      nl=null; e1=null; e2=null;
+      board.hidden=true; agendaEl.hidden=false;
+      board.style.height="0px";
+      renderAgenda();
+      liveAnytime.forEach(renderAnytimeEl);
+      return;
+    }
+    board.hidden=false; agendaEl.hidden=true;
+
     var rl=document.createElement("div"); rl.className="rail-line"; board.appendChild(rl);
     e1=document.createElement("div"); e1.className="edge"; e1.textContent="7 AM"; e1.style.top="0px"; board.appendChild(e1);
     e2=document.createElement("div"); e2.className="edge"; e2.textContent="11 PM"; board.appendChild(e2);
     nl=document.createElement("div"); nl.className="nowline"; nl.innerHTML='<i></i><em></em><span class="ln"></span>'; board.appendChild(nl);
     gh=document.createElement("div"); gh.className="ghost"; gh.innerHTML="<span></span>"; board.appendChild(gh);
 
-    items=ctxItems.concat(liveTimed);
-    items.forEach(function(it){ if(overrides[it.id]!=null) it.start=overrides[it.id]; });
-    recomputeSpan();
     items.forEach(renderItemEl);
     liveAnytime.forEach(renderAnytimeEl);
 
@@ -829,7 +1012,7 @@
   document.addEventListener("visibilitychange",function(){ if(!document.hidden) fetchToday(); });
 
 
-  // ---------- add + edit (v8.29-20) ----------
+  // ---------- add + edit (v8.29-22) ----------
   var PKEY="jd2-projects", LPKEY="jd2-lastproj";
   var projects=[], justDragged=0, gh=null, composeMin=null;
   try{projects=JSON.parse(localStorage.getItem(PKEY))||[]}catch(e){}
@@ -982,7 +1165,7 @@
       if(fabhome)fabhome.classList.toggle("armed",armed);
       fab.classList.toggle("overhome",armed);
 
-      if(armed){
+      if(armed||view==="agenda"){
         dropMin=null;
         if(gh)gh.style.display="none";
         return;
@@ -1126,6 +1309,21 @@
   document.addEventListener("touchcancel",function(){
     if(!pull.active)return;
     pull.active=false; pull.dist=0; ptrSet(0,true);
+  });
+
+  // ---- view toggle ----
+  var vtog=document.getElementById("vtog");
+  function applyView(v){
+    view=(v==="agenda")?"agenda":"rail";
+    [].forEach.call(vtog.querySelectorAll("button"),function(b){
+      b.classList.toggle("on",b.dataset.view===view);
+    });
+    try{localStorage.setItem(VKEY,view)}catch(e){}
+    render();
+  }
+  [].forEach.call(vtog.querySelectorAll("button"),function(b){
+    b.classList.toggle("on",b.dataset.view===view);
+    b.addEventListener("click",function(){applyView(b.dataset.view);});
   });
 
   fillProjectSelect();
