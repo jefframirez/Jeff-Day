@@ -192,6 +192,58 @@
     .wrap{animation:rise .5s ease both}
     @keyframes rise{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
   }
+
+  /* ---- add + edit (v8.29-15) ---- */
+  .gap.tappable{pointer-events:auto; cursor:pointer}
+  .gap.tappable:active{color:var(--accent)}
+  .ghost{position:absolute; left:42px; right:0; height:0; display:none; z-index:6; pointer-events:none}
+  .ghost::before{content:""; position:absolute; left:0; right:0; top:0; border-top:2px dashed var(--accent); opacity:.9}
+  .ghost span{
+    position:absolute; right:0; top:-11px; background:var(--accent); color:#fff;
+    font-size:.68rem; font-weight:700; padding:2px 8px; border-radius:7px;
+    white-space:nowrap; font-variant-numeric:tabular-nums;
+  }
+  .fab{
+    position:fixed; right:calc(18px + env(safe-area-inset-right));
+    bottom:calc(22px + env(safe-area-inset-bottom));
+    width:54px; height:54px; border-radius:50%; border:0; z-index:30;
+    background:var(--accent); color:#fff; font-size:1.7rem; line-height:1;
+    box-shadow:var(--lift); cursor:grab; touch-action:none;
+    display:grid; place-items:center; padding:0 0 3px;
+  }
+  .fab.dragging{cursor:grabbing; opacity:.94}
+  .fab:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
+  .scrim{position:fixed; inset:0; z-index:35; background:rgba(20,30,28,.28); display:none}
+  .scrim.on{display:block}
+  .composer{
+    position:fixed; left:0; right:0; bottom:0; z-index:40;
+    background:var(--surface); border-top:1px solid var(--line);
+    box-shadow:0 -8px 30px rgba(38,58,54,.14);
+    padding:14px calc(16px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+    transform:translateY(110%); transition:transform .22s ease; visibility:hidden;
+  }
+  .composer.open{transform:none; visibility:visible}
+  .composer .crow{display:flex; gap:10px; align-items:center; margin-bottom:10px}
+  .composer input[type=text], .composer select, .composer input[type=time]{
+    font:inherit; font-size:1rem; font-weight:600; color:var(--ink);
+    background:var(--ground); border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+  }
+  .composer input[type=text]{flex:1; min-width:0}
+  .composer select{flex:1; min-width:0}
+  .composer .cbtns{display:flex; gap:10px; justify-content:flex-end}
+  .composer button{
+    font:inherit; font-size:.95rem; font-weight:700; border:0; border-radius:10px;
+    padding:10px 20px; cursor:pointer;
+  }
+  #cAdd{background:var(--accent); color:#fff}
+  #cAdd:disabled{opacity:.55}
+  #cCancel{background:none; color:var(--muted)}
+  input.edit{
+    font:inherit; font-size:1rem; font-weight:600; color:var(--ink);
+    background:var(--ground); border:1px solid var(--accent); border-radius:8px;
+    padding:3px 7px; width:100%; box-sizing:border-box;
+  }
+  @media (prefers-reduced-motion:reduce){ .composer{transition:none} }
 </style>
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -242,10 +294,33 @@
 
   <footer>
     Live from Todoist &middot; refreshes automatically. Checking a task off here closes it there too.
-    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-14
+    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-15
   </footer>
 </div>
 
+<div class="scrim" id="scrim"></div>
+<button class="fab" id="fab" aria-label="Add a task">+</button>
+<div class="composer" id="composer" role="dialog" aria-label="New task">
+  <div class="crow">
+    <input type="text" id="cName" placeholder="What needs doing?" autocomplete="off" autocapitalize="sentences" enterkeyhint="done">
+  </div>
+  <div class="crow">
+    <input type="time" id="cTime" step="900" aria-label="Time">
+    <select id="cProj" aria-label="List"></select>
+    <select id="cDur" aria-label="How long">
+      <option value="15">15m</option>
+      <option value="30" selected>30m</option>
+      <option value="45">45m</option>
+      <option value="60">1h</option>
+      <option value="90">1h30</option>
+      <option value="120">2h</option>
+    </select>
+  </div>
+  <div class="cbtns">
+    <button id="cCancel" type="button">Cancel</button>
+    <button id="cAdd" type="button">Add</button>
+  </div>
+</div>
 <script>
 (function(){
   // ---------- appearance ----------
@@ -470,6 +545,7 @@
       });
       c.addEventListener("pointerdown",function(ev){ev.stopPropagation();});
       makeDraggable(el,it);
+      wireTitleEdit(nameEl,it);
     }
     it.el=el; board.appendChild(el);
   }
@@ -487,7 +563,14 @@
       try{localStorage.setItem(DKEY,JSON.stringify(done))}catch(e){}
       syncTodoist([t.id],isDone);
     }
-    el.addEventListener("click",flip);
+    var boxEl=el.querySelector(".box"), labEl=el.querySelector(".lab");
+    boxEl.addEventListener("click",function(ev){ev.stopPropagation();flip();});
+    labEl.addEventListener("click",function(ev){
+      ev.stopPropagation();
+      startEdit(labEl,t.content,function(next){
+        t.content=next; labEl.textContent=next; pushRename(t.id,next);
+      });
+    });
     el.addEventListener("keydown",function(e){if(e.key===" "||e.key==="Enter"){e.preventDefault();flip();}});
     quickList.appendChild(el);
   }
@@ -529,8 +612,10 @@
       var clash=sorted.some(function(it){return mid>it.top-14&&mid<it.top+((it.el.offsetHeight||44));});
       if(clash)return;
       var g=document.createElement("div");
-      g.className="gap"; g.textContent=fmtDur(e[1]-e[0])+" open";
+      g.className="gap tappable"; g.textContent=fmtDur(e[1]-e[0])+" open";
       g.style.top=(mid-8)+"px";
+      g.dataset.min=snap(e[0]+15);
+      g.addEventListener("click",function(){openComposer(parseInt(g.dataset.min,10));});
       board.appendChild(g); gapEls.push(g);
     });
     tick();
@@ -580,6 +665,7 @@
         if(active){
           el.classList.remove("lift"); lifted=null;
           if(moved){
+            justDragged=Date.now();
             overrides[it.id]=it.start;
             try{localStorage.setItem(OKEY,JSON.stringify(overrides))}catch(e2){}
           }
@@ -610,6 +696,7 @@
     e1=document.createElement("div"); e1.className="edge"; e1.textContent="7 AM"; e1.style.top="0px"; board.appendChild(e1);
     e2=document.createElement("div"); e2.className="edge"; e2.textContent="11 PM"; board.appendChild(e2);
     nl=document.createElement("div"); nl.className="nowline"; nl.innerHTML='<i></i><em></em><span class="ln"></span>'; board.appendChild(nl);
+    gh=document.createElement("div"); gh.className="ghost"; gh.innerHTML="<span></span>"; board.appendChild(gh);
 
     items=ctxItems.concat(liveTimed);
     items.forEach(function(it){ if(overrides[it.id]!=null) it.start=overrides[it.id]; });
@@ -660,6 +747,221 @@
   fetchToday();
   setInterval(fetchToday, 3*60*1000);
   document.addEventListener("visibilitychange",function(){ if(!document.hidden) fetchToday(); });
+
+
+  // ---------- add + edit (v8.29-15) ----------
+  var PKEY="jd2-projects", LPKEY="jd2-lastproj";
+  var projects=[], justDragged=0, gh=null, composeMin=null;
+  try{projects=JSON.parse(localStorage.getItem(PKEY))||[]}catch(e){}
+
+  var scrim=document.getElementById("scrim");
+  var fab=document.getElementById("fab");
+  var composer=document.getElementById("composer");
+  var cName=document.getElementById("cName");
+  var cTime=document.getElementById("cTime");
+  var cProj=document.getElementById("cProj");
+  var cDur=document.getElementById("cDur");
+  var cAdd=document.getElementById("cAdd");
+  var cCancel=document.getElementById("cCancel");
+
+  function pad2(n){return (n<10?"0":"")+n;}
+  function offsetStr(){
+    var o=-new Date().getTimezoneOffset(), s=o>=0?"+":"-"; o=Math.abs(o);
+    return s+pad2(Math.floor(o/60))+":"+pad2(o%60);
+  }
+  function dueStamp(min){
+    return DAY+"T"+pad2(Math.floor(min/60))+":"+pad2(min%60)+":00"+offsetStr();
+  }
+
+  // ---- list picker ----
+  function fillProjectSelect(){
+    if(!cProj)return;
+    var last=null; try{last=localStorage.getItem(LPKEY)}catch(e){}
+    cProj.innerHTML="";
+    if(!projects.length){
+      var o=document.createElement("option");
+      o.value=""; o.textContent="Lists unavailable";
+      cProj.appendChild(o); return;
+    }
+    projects.forEach(function(p){
+      var op=document.createElement("option");
+      op.value=p.id; op.textContent=p.name;
+      cProj.appendChild(op);
+    });
+    if(last){
+      var hit=projects.some(function(p){return p.id===last;});
+      if(hit)cProj.value=last;
+    }
+  }
+  function fetchProjects(){
+    fetch(WORKER+"/projects",{headers:{"X-App-Key":APPKEY}})
+      .then(function(r){
+        if(!r.ok)throw new Error("list lookup returned "+r.status);
+        return r.json();
+      })
+      .then(function(d){
+        projects=d.projects||[];
+        try{localStorage.setItem(PKEY,JSON.stringify(projects))}catch(e){}
+        fillProjectSelect();
+      })
+      .catch(function(e){
+        console.error("project list failed",e);
+        if(!projects.length)warn("Can't reach your lists right now, so adding is off until it comes back.");
+      });
+  }
+
+  // ---- composer ----
+  function openComposer(min){
+    composeMin=Math.max(START,Math.min(END-15,snap(min)));
+    cTime.value=pad2(Math.floor(composeMin/60))+":"+pad2(composeMin%60);
+    cName.value="";
+    fillProjectSelect();
+    composer.classList.add("open");
+    scrim.classList.add("on");
+    setTimeout(function(){try{cName.focus()}catch(e){}},60);
+  }
+  function closeComposer(){
+    composer.classList.remove("open");
+    scrim.classList.remove("on");
+    try{cName.blur()}catch(e){}
+  }
+  function nextSlot(){
+    var m=START;
+    if(today()===DAY){var d=new Date(); m=d.getHours()*60+d.getMinutes()+15;}
+    return Math.max(START,Math.min(END-15,snap(m)));
+  }
+  function addTask(){
+    var name=cName.value.trim();
+    if(!name){try{cName.focus()}catch(e){} return;}
+    var pid=cProj.value;
+    if(!pid){warn("No list to put it in yet. Try again in a moment.");return;}
+    try{localStorage.setItem(LPKEY,pid)}catch(e){}
+    cAdd.disabled=true; cAdd.textContent="Adding";
+    fetch(WORKER+"/add",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","X-App-Key":APPKEY},
+      body:JSON.stringify({
+        content:name,
+        due:dueStamp(composeMin),
+        projectId:pid,
+        durationMin:parseInt(cDur.value,10)||30
+      })
+    })
+    .then(function(r){
+      return r.text().then(function(txt){
+        if(!r.ok)throw new Error("Todoist said "+r.status+" — "+txt.slice(0,120));
+        return txt;
+      });
+    })
+    .then(function(){ warn(null); closeComposer(); fetchToday(); })
+    .catch(function(e){ warn("Couldn't add that: "+(e.message||e)); })
+    .then(function(){ cAdd.disabled=false; cAdd.textContent="Add"; });
+  }
+
+  cTime.addEventListener("change",function(){
+    var p=cTime.value.split(":");
+    if(p.length===2){
+      var m=(parseInt(p[0],10)*60)+parseInt(p[1],10);
+      if(!isNaN(m))composeMin=m;
+    }
+  });
+  cName.addEventListener("keydown",function(e){
+    if(e.key==="Enter"){e.preventDefault(); addTask();}
+    else if(e.key==="Escape"){e.preventDefault(); closeComposer();}
+  });
+  cAdd.addEventListener("click",addTask);
+  cCancel.addEventListener("click",closeComposer);
+  scrim.addEventListener("click",closeComposer);
+
+  // ---- draggable plus ----
+  function minFromClientY(cy){
+    var r=board.getBoundingClientRect();
+    return snap((cy-r.top-14)/PPM+START);
+  }
+  fab.addEventListener("pointerdown",function(e){
+    if(e.button)return;
+    var sy=e.clientY, dragging=false, dropMin=null;
+    try{fab.setPointerCapture(e.pointerId)}catch(err){}
+    function mv(ev){
+      if(!dragging&&Math.abs(ev.clientY-sy)<8)return;
+      dragging=true;
+      fab.classList.add("dragging");
+      fab.style.transform="translateY("+(ev.clientY-sy)+"px)";
+      dropMin=Math.max(START,Math.min(END-15,minFromClientY(ev.clientY)));
+      if(gh){
+        gh.style.display="block";
+        gh.style.top=(y(dropMin)-1)+"px";
+        gh.firstChild.textContent=fmt(dropMin);
+      }
+    }
+    function up(){
+      document.removeEventListener("pointermove",mv);
+      document.removeEventListener("pointerup",up);
+      document.removeEventListener("pointercancel",up);
+      fab.classList.remove("dragging");
+      fab.style.transform="";
+      if(gh)gh.style.display="none";
+      openComposer(dragging&&dropMin!=null?dropMin:nextSlot());
+    }
+    document.addEventListener("pointermove",mv);
+    document.addEventListener("pointerup",up);
+    document.addEventListener("pointercancel",up);
+  });
+
+  // ---- edit a title in place ----
+  function startEdit(host,text,commit){
+    if(host.querySelector("input"))return;
+    var prev=host.innerHTML, finished=false;
+    var inp=document.createElement("input");
+    inp.type="text"; inp.className="edit"; inp.value=text;
+    inp.setAttribute("autocomplete","off");
+    inp.setAttribute("enterkeyhint","done");
+    host.innerHTML=""; host.appendChild(inp);
+    try{inp.focus(); inp.setSelectionRange(text.length,text.length);}catch(e){}
+    function finish(save){
+      if(finished)return; finished=true;
+      var next=inp.value.trim();
+      host.innerHTML=prev;
+      if(save&&next&&next!==text)commit(next,host);
+    }
+    inp.addEventListener("keydown",function(e){
+      e.stopPropagation();
+      if(e.key==="Enter"){e.preventDefault(); finish(true);}
+      else if(e.key==="Escape"){e.preventDefault(); finish(false);}
+    });
+    inp.addEventListener("blur",function(){finish(true);});
+    inp.addEventListener("pointerdown",function(e){e.stopPropagation();});
+    inp.addEventListener("click",function(e){e.stopPropagation();});
+  }
+  function pushRename(id,text){
+    fetch(WORKER+"/rename",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","X-App-Key":APPKEY},
+      body:JSON.stringify({id:id,content:text})
+    })
+    .then(function(r){
+      if(!r.ok)throw new Error("Todoist said "+r.status);
+      warn(null);
+    })
+    .catch(function(e){
+      warn("Couldn't rename that: "+(e.message||e)+". Putting the old title back.");
+      fetchToday();
+    });
+  }
+  function wireTitleEdit(nameEl,it){
+    nameEl.addEventListener("click",function(ev){
+      if(Date.now()-justDragged<400)return;
+      ev.stopPropagation();
+      startEdit(nameEl,it.name,function(next){
+        it.name=next;
+        nameEl.textContent=next;
+        pushRename(it.tid&&it.tid[0]?it.tid[0]:String(it.id).replace(/^td-/,""),next);
+      });
+    });
+  }
+
+  fillProjectSelect();
+  fetchProjects();
 
   window.addEventListener("resize",layout);
 })();
