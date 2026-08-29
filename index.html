@@ -239,8 +239,8 @@
   </section>
 
   <footer>
-    Drag to move &middot; hold first on touch. Moves live on this device; tell Cathy to make them real in Todoist.
-    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-10
+    Drag to move &middot; hold first on touch. Checkboxes on synced tasks close them in Todoist too.
+    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-11
   </footer>
 </div>
 
@@ -397,17 +397,30 @@
   try{overrides=JSON.parse(localStorage.getItem(OKEY))||{}}catch(e){}
   try{done=JSON.parse(localStorage.getItem(DKEY))||{}}catch(e){}
 
+  // ---------- real Todoist sync ----------
+  var WORKER="https://jeffs-day-worker.jeffnramirez.workers.dev", APPKEY="XwPNlNvuavBom1QxjvPkd9vnbvd2S_uk";
+  function syncTodoist(ids,isDone){
+    if(!ids||!ids.length)return;
+    try{
+      fetch(WORKER+(isDone?"/complete":"/reopen"),{
+        method:"POST",
+        headers:{"Content-Type":"application/json","X-App-Key":APPKEY},
+        body:JSON.stringify({ids:ids})
+      }).catch(function(e){console.error("todoist sync failed",e);});
+    }catch(e){console.error("todoist sync failed",e);}
+  }
+
   // bar:true draws a duration bar on the rail
   var items=[
-    {id:"meds", type:"task", start:8*60,     dur:30,  name:"Breakfast · morning meds"},
+    {id:"meds", type:"task", start:8*60,     dur:30,  name:"Breakfast · morning meds", tid:["6hPH75mr2mjH69Jq","6hPH765PG6fcwRQq"]},
     {id:"car",  type:"task", start:9*60,     dur:15,  name:"Call Enterprise re convertible"},
     {id:"fun",  type:"task", start:10*60,    dur:270, bar:true, name:"Fun block · PCH or SkyZone + beach"},
     {id:"snk1", type:"task", start:10*60+30, dur:15,  name:"Snack round 1"},
     {id:"lunch",type:"task", start:12*60+30, dur:30,  name:"Lunch out with the kids"},
     {id:"snk2", type:"task", start:15*60,    dur:15,  name:"Snack round 2"},
-    {id:"cave", type:"task", start:15*60+30, dur:60,  bar:true, name:"Cave video with Ezra"},
-    {id:"fold", type:"task", start:17*60+30, dur:15,  name:"Fold the kids’ clothes"},
-    {id:"din",  type:"task", start:18*60+30, dur:60,  bar:true, name:"Dinner with the kids · evening antibiotic"},
+    {id:"cave", type:"task", start:15*60+30, dur:60,  bar:true, name:"Cave video with Ezra", tid:["6hPH75p6hc4wJMxM"]},
+    {id:"fold", type:"task", start:17*60+30, dur:15,  name:"Fold the kids’ clothes", tid:["6hPH75wJJ6PhpmQv"]},
+    {id:"din",  type:"task", start:18*60+30, dur:60,  bar:true, name:"Dinner with the kids · evening antibiotic", tid:["6hPH75xFFfWqPmJq"]},
     {id:"eve",  type:"task", start:21*60,    dur:0,   name:"Kids down · open evening"},
     {id:"walk", type:"ctx",  start:16*60,    dur:120, bar:true, name:"Walk w Stacey"},
     {id:"movie",type:"ctx",  start:18*60+30, dur:120, bar:true, name:"Movie w Stacey & Graci"}
@@ -449,8 +462,10 @@
       c.addEventListener("click",function(ev){
         ev.stopPropagation();
         el.classList.toggle("done");
-        done[it.id]=el.classList.contains("done");
+        var isDone=el.classList.contains("done");
+        done[it.id]=isDone;
         try{localStorage.setItem(DKEY,JSON.stringify(done))}catch(e){}
+        syncTodoist(it.tid,isDone);
       });
       c.addEventListener("pointerdown",function(ev){ev.stopPropagation();});
       makeDraggable(el,it);
@@ -574,14 +589,17 @@
 
   // anytime tray
   var QKEY="jd-quick-"+DAY, qs={};
+  var QTIDS={va:["6hMhwfG7437HQxvq"], airtag:["6gg4VWf69cgP9qXq"], hair:["6hPH75mC53Vr3jgq"]};
   try{qs=JSON.parse(localStorage.getItem(QKEY))||{}}catch(e){}
   document.querySelectorAll("#quick .item").forEach(function(el){
     var k=el.dataset.k;
     if(qs[k])el.classList.add("done");
     function flip(){
       el.classList.toggle("done");
-      qs[k]=el.classList.contains("done");
+      var isDone=el.classList.contains("done");
+      qs[k]=isDone;
       try{localStorage.setItem(QKEY,JSON.stringify(qs))}catch(e){}
+      syncTodoist(QTIDS[k],isDone);
     }
     el.addEventListener("click",flip);
     el.addEventListener("keydown",function(e){if(e.key===" "||e.key==="Enter"){e.preventDefault();flip();}});
