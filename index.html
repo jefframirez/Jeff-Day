@@ -103,13 +103,14 @@
   .bar{position:absolute; width:5px; border-radius:5px; z-index:2}
   .bar.mine{left:12.5px; background:var(--accent)}
   .bar.ctx{left:12.5px; background:var(--kylee)}
-  .nowline{position:absolute; left:0; right:0; height:0; z-index:2; pointer-events:none; opacity:.75}
-  .nowline .ln{position:absolute; left:116px; right:0; top:0; border-top:1.5px solid var(--now)}
+  .nowline{position:absolute; left:0; right:0; height:0; z-index:1; pointer-events:none}
+  .nowline .ln{position:absolute; left:20px; right:0; top:0; border-top:1px solid var(--now); opacity:.3}
   .nowline em{
-    position:absolute; left:42px; top:-9px; font-style:normal; font-size:.72rem; font-weight:700;
-    color:var(--now); font-variant-numeric:tabular-nums;
+    position:absolute; left:0; top:-8px; font-style:normal; font-size:.6rem; font-weight:700;
+    color:var(--now); font-variant-numeric:tabular-nums; letter-spacing:.02em;
+    background:var(--ground); border-radius:4px; padding:1px 3px; line-height:1.25;
   }
-  .nowline i{position:absolute; left:9.5px; top:-5px; width:10px; height:10px; border-radius:50%; background:var(--now)}
+  .nowline i{position:absolute; left:10.5px; top:-3.5px; width:7px; height:7px; border-radius:50%; background:var(--now)}
   /* daylight wash */
   .sky{position:fixed; inset:0; z-index:-1; opacity:0; transition:opacity 1.4s ease; pointer-events:none}
   .sky.on{opacity:1}
@@ -193,7 +194,7 @@
     @keyframes rise{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
   }
 
-  /* ---- add + edit (v8.29-15) ---- */
+  /* ---- add + edit (v8.29-16) ---- */
   .gap.tappable{pointer-events:auto; cursor:pointer}
   .gap.tappable:active{color:var(--accent)}
   .ghost{position:absolute; left:42px; right:0; height:0; display:none; z-index:6; pointer-events:none}
@@ -294,7 +295,7 @@
 
   <footer>
     Live from Todoist &middot; refreshes automatically. Checking a task off here closes it there too.
-    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-15
+    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-16
   </footer>
 </div>
 
@@ -500,6 +501,27 @@
   var quickList=document.getElementById("quick");
   var e1,e2,nl;
   function y(min){return (min-START)*PPM+14;}
+  function nowMin(){
+    if(today()!==DAY)return null;
+    var d=new Date(); return d.getHours()*60+d.getMinutes();
+  }
+  function edgeLabel(min){
+    var h=Math.floor(min/60)%24, m=min%60, ap=h>=12?"PM":"AM", hh=h%12;
+    if(hh===0)hh=12;
+    return hh+(m?":"+(m<10?"0":"")+m:"")+" "+ap;
+  }
+  // Collapse dead space: begin at the earliest thing still on the board (or now,
+  // whichever is earlier) and end a little past the last one. As the day burns off
+  // and finished tasks drop out of Todoist, the top of the rail closes up by itself.
+  function recomputeSpan(){
+    var now=nowMin(), starts=[], ends=[];
+    items.forEach(function(it){ starts.push(it.start); ends.push(it.start+it.dur); });
+    var first=starts.length?Math.min.apply(null,starts):(now!=null?now:7*60);
+    var last =ends.length  ?Math.max.apply(null,ends)  :(now!=null?now:23*60);
+    if(now!=null){ first=Math.min(first,now); last=Math.max(last,now); }
+    START=Math.max(0,Math.floor((first-20)/60)*60);
+    END=Math.min(24*60,Math.max(START+120,Math.ceil((last+30)/60)*60));
+  }
   function fmt(min){
     var h=Math.floor(min/60), m=min%60, ap=h>=12?"PM":"AM";
     var hh=h%12; if(hh===0)hh=12;
@@ -577,6 +599,8 @@
 
   var gapEls=[];
   function layout(){
+    if(e1)e1.textContent=edgeLabel(START);
+    if(e2)e2.textContent=edgeLabel(END);
     // bars + when labels at true time
     items.forEach(function(it){
       var w=it.el.querySelector(".when");
@@ -631,7 +655,7 @@
     var d=new Date(), m=d.getHours()*60+d.getMinutes();
     if(m<START||m>END){nl.style.display="none";return;}
     nl.style.display="block"; nl.style.top=y(m)+"px";
-    nl.querySelector("em").textContent=fmt(m);
+    nl.querySelector("em").textContent=fmt(m).replace(/ [AP]M$/,"");
   }
   setInterval(tick,30000);
 
@@ -700,6 +724,7 @@
 
     items=ctxItems.concat(liveTimed);
     items.forEach(function(it){ if(overrides[it.id]!=null) it.start=overrides[it.id]; });
+    recomputeSpan();
     items.forEach(renderItemEl);
     liveAnytime.forEach(renderAnytimeEl);
 
@@ -749,7 +774,7 @@
   document.addEventListener("visibilitychange",function(){ if(!document.hidden) fetchToday(); });
 
 
-  // ---------- add + edit (v8.29-15) ----------
+  // ---------- add + edit (v8.29-16) ----------
   var PKEY="jd2-projects", LPKEY="jd2-lastproj";
   var projects=[], justDragged=0, gh=null, composeMin=null;
   try{projects=JSON.parse(localStorage.getItem(PKEY))||[]}catch(e){}
