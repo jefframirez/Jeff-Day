@@ -119,10 +119,9 @@
     padding:0 10px 4px; margin-top:-3px;
   }
   .gap{
-    position:absolute; left:42px; font-size:.68rem; font-weight:700; letter-spacing:.16em;
-    color:var(--faint); text-transform:uppercase; pointer-events:none; opacity:.8;
+    position:absolute; left:42px; font-size:.74rem; font-weight:600; letter-spacing:.01em;
+    color:var(--faint); pointer-events:none; opacity:.85;
   }
-  .gap::before{content:"+  "}
   .titem{
     position:absolute; left:42px; right:0; z-index:3;
     display:flex; align-items:flex-start; gap:10px;
@@ -194,7 +193,7 @@
     @keyframes rise{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
   }
 
-  /* ---- add + edit (v8.29-17) ---- */
+  /* ---- add + edit (v8.29-19) ---- */
   .gap.tappable{pointer-events:auto; cursor:pointer}
   .gap.tappable:active{color:var(--accent)}
   .ghost{position:absolute; left:42px; right:0; height:0; display:none; z-index:6; pointer-events:none}
@@ -311,7 +310,7 @@
 
   <footer>
     Live from Todoist &middot; refreshes automatically. Checking a task off here closes it there too.
-    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-17
+    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-19
   </footer>
 </div>
 
@@ -544,6 +543,12 @@
     var hh=h%12; if(hh===0)hh=12;
     return hh+":"+(m<10?"0":"")+m+" "+ap;
   }
+  function fmtGap(min){
+    var h=Math.round(min/30)/2;              // nearest half hour
+    if(h<1)return null;
+    var txt=(h===Math.floor(h))?String(h):h.toFixed(1);
+    return txt+" "+(h===1?"hour":"hours")+" open";
+  }
   function fmtDur(min){
     var h=Math.floor(min/60), m=min%60, s="";
     if(h)s+=h+"H "; if(m)s+=m+"M";
@@ -641,20 +646,39 @@
     e2.style.top=(bottom+4)+"px";
     // open gaps between MY commitments
     gapEls.forEach(function(g){g.remove()}); gapEls=[];
-    var mine=items.filter(function(i){return i.type!=="ctx"}).slice().sort(function(a,b){return a.start-b.start});
+    // an open window is a stretch with nothing in it, mine or Kylee's
+    var busy=items.slice().sort(function(a,b){return a.start-b.start});
+    // never offer time that has already gone by
+    var nb=nowMin(), floorMin=(nb!=null)?Math.max(START,nb):START;
     var edges=[], cur=START;
-    mine.forEach(function(i){
-      if(i.start-cur>=60)edges.push([cur,i.start]);
+    function pushWin(a,b){
+      a=Math.max(a,floorMin);
+      if(b-a>=60)edges.push([a,b]);
+    }
+    busy.forEach(function(i){
+      pushWin(cur,i.start);
       cur=Math.max(cur,i.start+i.dur);
     });
-    if(END-cur>=60)edges.push([cur,END]);
+    pushWin(cur,END);
+    function clashes(py){
+      return sorted.some(function(it){
+        return py>it.top-14&&py<it.top+(it.el.offsetHeight||44);
+      });
+    }
     edges.forEach(function(e){
-      var mid=y((e[0]+e[1])/2);
-      var clash=sorted.some(function(it){return mid>it.top-14&&mid<it.top+((it.el.offsetHeight||44));});
-      if(clash)return;
+      var label=fmtGap(e[1]-e[0]);
+      if(!label)return;
+      // aim for the middle of the window, but slide along it rather than give up
+      var mid=y((e[0]+e[1])/2), lo=y(e[0])+16, hi=y(e[1])-24, py=null;
+      for(var k=0;k<=8;k++){
+        var up=mid-k*14, dn=mid+k*14;
+        if(up>=lo&&!clashes(up)){py=up;break;}
+        if(dn<=hi&&!clashes(dn)){py=dn;break;}
+      }
+      if(py===null)return;
       var g=document.createElement("div");
-      g.className="gap tappable"; g.textContent=fmtDur(e[1]-e[0])+" open";
-      g.style.top=(mid-8)+"px";
+      g.className="gap tappable"; g.textContent=label;
+      g.style.top=(py-8)+"px";
       g.dataset.min=snap(e[0]+15);
       g.addEventListener("click",function(){openComposer(parseInt(g.dataset.min,10));});
       board.appendChild(g); gapEls.push(g);
@@ -791,7 +815,7 @@
   document.addEventListener("visibilitychange",function(){ if(!document.hidden) fetchToday(); });
 
 
-  // ---------- add + edit (v8.29-17) ----------
+  // ---------- add + edit (v8.29-19) ----------
   var PKEY="jd2-projects", LPKEY="jd2-lastproj";
   var projects=[], justDragged=0, gh=null, composeMin=null;
   try{projects=JSON.parse(localStorage.getItem(PKEY))||[]}catch(e){}
