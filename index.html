@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jeff's Day</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jeff's Day">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f7f6">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141a19">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,420;9..144,560&family=Albert+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#f4f7f6; --surface:#ffffff; --ink:#25322f; --muted:#63736f;
+    --faint:#8b9995; --line:#dde6e3; --accent:#3e7c74; --accent-soft:#e3edeb;
+    --amber:#a37c33; --amber-soft:#f3ead9; --rail:#cfdbd8; --done:#7fa695;
+    --shadow:0 1px 3px rgba(38,58,54,.06),0 8px 24px rgba(38,58,54,.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#141a19; --surface:#1c2422; --ink:#e6edeb; --muted:#9db0ab;
+      --faint:#7b8d88; --line:#2b3634; --accent:#7dbcb2; --accent-soft:#24322f;
+      --amber:#d3a75f; --amber-soft:#332b1c; --rail:#33403d; --done:#6f9c8b;
+      --shadow:none;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#141a19; --surface:#1c2422; --ink:#e6edeb; --muted:#9db0ab;
+    --faint:#7b8d88; --line:#2b3634; --accent:#7dbcb2; --accent-soft:#24322f;
+    --amber:#d3a75f; --amber-soft:#332b1c; --rail:#33403d; --done:#6f9c8b;
+    --shadow:none;
+  }
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:"Albert Sans",system-ui,sans-serif; font-size:16px; line-height:1.5;
+    -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;
+    -webkit-tap-highlight-color:transparent; overscroll-behavior-y:none;
+    min-height:100dvh;
+  }
+  .wrap{
+    max-width:560px; margin:0 auto;
+    padding:calc(40px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right))
+            calc(64px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+  }
+  header h1{
+    font-family:"Fraunces",Georgia,serif; font-weight:560; font-size:1.9rem;
+    margin:0 0 4px; letter-spacing:-.01em; text-wrap:balance;
+  }
+  .sub{color:var(--muted); margin:0 0 10px}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0}
+  .chip{
+    font-size:.78rem; font-weight:600; letter-spacing:.04em;
+    padding:4px 11px; border-radius:999px; background:var(--accent-soft); color:var(--accent);
+  }
+  .chip.warm{background:var(--amber-soft); color:var(--amber)}
+  section{margin-top:36px}
+  h2{
+    font-size:.75rem; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--faint); margin:0 0 14px;
+  }
+  .tl{display:grid; grid-template-columns:58px 14px 1fr; row-gap:0}
+  .t{
+    font-variant-numeric:tabular-nums; font-size:.82rem; font-weight:600;
+    color:var(--muted); padding-top:18px; text-align:right; padding-right:4px;
+  }
+  .rail{position:relative}
+  .rail::before{content:""; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--rail)}
+  .rail .dot{
+    position:absolute; left:2px; top:24px; width:10px; height:10px; border-radius:50%;
+    background:var(--accent); border:2px solid var(--ground);
+  }
+  .rail.soft .dot{background:var(--rail)}
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    box-shadow:var(--shadow); padding:14px 16px; margin:8px 0 8px 10px;
+  }
+  .card h3{font-size:1rem; font-weight:600; margin:0}
+  .card p{margin:4px 0 0; font-size:.9rem; color:var(--muted)}
+  .tag{
+    display:inline-block; font-size:.7rem; font-weight:600; letter-spacing:.05em;
+    color:var(--amber); background:var(--amber-soft); border-radius:6px;
+    padding:2px 7px; margin-left:8px; vertical-align:2px;
+  }
+  .list{display:flex; flex-direction:column; gap:8px}
+  .item{
+    display:flex; align-items:center; gap:12px; background:var(--surface);
+    border:1px solid var(--line); border-radius:12px; padding:11px 14px;
+    box-shadow:var(--shadow); cursor:pointer; user-select:none;
+  }
+  .item:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .box{
+    width:20px; height:20px; border-radius:7px; border:2px solid var(--rail);
+    flex:none; display:grid; place-items:center; color:transparent; font-size:.8rem;
+  }
+  .item.done .box{background:var(--done); border-color:var(--done); color:var(--surface)}
+  .item.done .lab{color:var(--faint); text-decoration:line-through}
+  .lab{font-size:.92rem}
+  .lab small{color:var(--faint); font-weight:400}
+  .note{color:var(--faint); font-size:.85rem; margin:22px 0 0}
+  footer{
+    margin-top:44px; padding-top:18px; border-top:1px solid var(--line);
+    color:var(--faint); font-size:.85rem;
+  }
+  .modebar{display:flex; justify-content:flex-end; margin:0 0 18px}
+  .mode{
+    display:flex; gap:2px; background:var(--accent-soft); border-radius:999px; padding:3px;
+  }
+  .mode button{
+    font:inherit; font-size:.72rem; font-weight:600; letter-spacing:.04em;
+    color:var(--muted); background:none; border:0; border-radius:999px;
+    padding:4px 10px; cursor:pointer;
+  }
+  .mode button.on{background:var(--surface); color:var(--accent); box-shadow:var(--shadow)}
+  .mode button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+  @media (prefers-reduced-motion:no-preference){
+    .wrap{animation:rise .5s ease both}
+    @keyframes rise{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
+  }
+</style>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+</head>
+<body>
+<div class="wrap">
+  <div class="modebar" role="group" aria-label="Appearance">
+    <div class="mode">
+      <button data-mode="auto">Auto</button>
+      <button data-mode="light">Light</button>
+      <button data-mode="dark">Dark</button>
+    </div>
+  </div>
+  <header>
+    <h1>Saturday, August&nbsp;29</h1>
+    <p class="sub">Sunny, high 84. Heat advisory until 8pm, so shade and water on the fun block.</p>
+    <div class="chips">
+      <span class="chip">Kids day</span>
+      <span class="chip warm">Kylee out 4:00&ndash;8:30</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Timeline</h2>
+    <div class="tl">
+      <div class="t">8:00</div><div class="rail"><span class="dot"></span></div>
+      <div class="card"><h3>Slow morning with the kids</h3><p>Breakfast, morning meds with it.</p></div>
+
+      <div class="t">9:00</div><div class="rail"><span class="dot"></span></div>
+      <div class="card"><h3>Call Enterprise about the convertible<span class="tag">decide</span></h3><p>805&#8209;382&#8209;3307, open Sat morning. Yes &rarr; PCH day. No &rarr; SkyZone (the pass) or Harbor Cove.</p></div>
+
+      <div class="t">10:00</div><div class="rail"><span class="dot"></span></div>
+      <div class="card"><h3>The fun block</h3><p>PCH run top-down, or SkyZone morning + beach. Lunch out with the kids either way.</p></div>
+
+      <div class="t">3:30</div><div class="rail"><span class="dot"></span></div>
+      <div class="card"><h3>Cool-down hour</h3><p>Cave video with Ezra on the couch. AC, water, nobody moves.</p></div>
+
+      <div class="t">5:30</div><div class="rail soft"><span class="dot"></span></div>
+      <div class="card"><h3>Fold the kids&rsquo; clothes</h3><p>15 minutes, kids can help sort.</p></div>
+
+      <div class="t">6:30</div><div class="rail"><span class="dot"></span></div>
+      <div class="card"><h3>Dinner, solo with the kids</h3><p>Kylee&rsquo;s at the movie. Evening antibiotic with dinner.</p></div>
+
+      <div class="t">9:00</div><div class="rail soft"><span class="dot"></span></div>
+      <div class="card"><h3>Kids down &middot; open evening</h3><p>Yours. Deep work if the tank has it, nothing if it doesn&rsquo;t.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Quick hits &middot; anytime</h2>
+    <div class="list" id="quick">
+      <div class="item" data-k="med-am" tabindex="0"><span class="box">&#10003;</span><span class="lab">Morning meds <small>&middot; antibiotic + sertraline</small></span></div>
+      <div class="item" data-k="va" tabindex="0"><span class="box">&#10003;</span><span class="lab">Check the VA app <small>&middot; 2 min</small></span></div>
+      <div class="item" data-k="airtag" tabindex="0"><span class="box">&#10003;</span><span class="lab">Replace AirTag batteries</span></div>
+      <div class="item" data-k="hair" tabindex="0"><span class="box">&#10003;</span><span class="lab">Cut my hair <small>&middot; fine to slide</small></span></div>
+      <div class="item" data-k="med-pm" tabindex="0"><span class="box">&#10003;</span><span class="lab">Evening antibiotic</span></div>
+    </div>
+    <p class="note">Checks here are just for your eyes today. Tell Cathy what&rsquo;s done and it gets closed in Todoist.</p>
+  </section>
+
+  <section>
+    <h2>Watching</h2>
+    <div class="card" style="margin-left:0">
+      <h3>Flight to HNL<span class="tag">buy by Tue 9/1</span></h3>
+      <p>Waiting on Jessica about Sun 9/27. No reply by tonight and Cathy drafts the nudge.</p>
+    </div>
+  </section>
+
+  <footer>Change anything by telling Cathy. Todoist stays the source of truth; this page is the calm view of it.</footer>
+</div>
+
+<script>
+  const MKEY="jeffs-day-mode";
+  const root=document.documentElement;
+  const btns=document.querySelectorAll(".mode button");
+  function applyMode(m){
+    if(m==="light"||m==="dark"){root.setAttribute("data-theme",m);}
+    else{root.removeAttribute("data-theme"); m="auto";}
+    btns.forEach(b=>b.classList.toggle("on",b.dataset.mode===m));
+  }
+  let mode="auto";
+  try{mode=localStorage.getItem(MKEY)||"auto"}catch(e){}
+  applyMode(mode);
+  btns.forEach(b=>b.addEventListener("click",()=>{
+    applyMode(b.dataset.mode);
+    try{localStorage.setItem(MKEY,b.dataset.mode)}catch(e){}
+  }));
+
+  const KEY="jeffs-day-2026-08-29";
+  let state={};
+  try{state=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){}
+  document.querySelectorAll("#quick .item").forEach(el=>{
+    const k=el.dataset.k;
+    if(state[k])el.classList.add("done");
+    const flip=()=>{
+      el.classList.toggle("done");
+      state[k]=el.classList.contains("done");
+      try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
+    };
+    el.addEventListener("click",flip);
+    el.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();flip();}});
+  });
+</script>
+</body>
+</html>
