@@ -48,7 +48,8 @@
     padding:calc(28px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right))
             calc(56px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
   }
-  .modebar{position:relative; display:flex; justify-content:flex-end; margin:0 0 6px; z-index:20}
+  .titlerow{display:flex; align-items:flex-start; justify-content:space-between; gap:14px}
+  .modebar{position:relative; flex:none; margin:-4px -6px 0 0; z-index:20}
   .gear{
     width:34px; height:34px; border-radius:50%; border:0; cursor:pointer;
     background:none; color:var(--faint);
@@ -186,19 +187,21 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="modebar">
-    <button class="gear" id="gear" aria-label="Settings" aria-expanded="false">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.6a1.9 1.9 0 0 1 0-3.2l1-.66-1.5-2.6-1.14.44a1.9 1.9 0 0 1-2.6-1.1L14.7 4h-3l-.46 2.48a1.9 1.9 0 0 1-2.6 1.1L7.5 7.14l-1.5 2.6 1 .66a1.9 1.9 0 0 1 0 3.2l-1 .66 1.5 2.6 1.14-.44a1.9 1.9 0 0 1 2.6 1.1L11.7 20h3l.46-2.48a1.9 1.9 0 0 1 2.6-1.1l1.14.44 1.5-2.6z"/></svg>
-    </button>
-    <div class="mode" id="modemenu" role="group" aria-label="Appearance">
-      <span class="mlabel">Appearance</span>
-      <button data-mode="auto">Auto &middot; match device</button>
-      <button data-mode="light">Light</button>
-      <button data-mode="dark">Dark</button>
-    </div>
-  </div>
   <header>
-    <h1>Saturday, August&nbsp;29</h1>
+    <div class="titlerow">
+      <h1>Saturday, August&nbsp;29</h1>
+      <div class="modebar">
+        <button class="gear" id="gear" aria-label="Settings" aria-expanded="false">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.6a1.9 1.9 0 0 1 0-3.2l1-.66-1.5-2.6-1.14.44a1.9 1.9 0 0 1-2.6-1.1L14.7 4h-3l-.46 2.48a1.9 1.9 0 0 1-2.6 1.1L7.5 7.14l-1.5 2.6 1 .66a1.9 1.9 0 0 1 0 3.2l-1 .66 1.5 2.6 1.14-.44a1.9 1.9 0 0 1 2.6 1.1L11.7 20h3l.46-2.48a1.9 1.9 0 0 1 2.6-1.1l1.14.44 1.5-2.6z"/></svg>
+        </button>
+        <div class="mode" id="modemenu" role="group" aria-label="Appearance">
+          <span class="mlabel">Appearance</span>
+          <button data-mode="auto">Auto &middot; match device</button>
+          <button data-mode="light">Light</button>
+          <button data-mode="dark">Dark</button>
+        </div>
+      </div>
+    </div>
     <p class="sub">Sunny, high 84 &middot; heat advisory until 8pm</p>
     <div class="chips">
       <span class="chip"><span class="dot"></span>Kids day</span>
@@ -227,7 +230,7 @@
 
   <footer>
     Drag to move &middot; hold first on touch. Moves live on this device; tell Cathy to make them real in Todoist.
-    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-5
+    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-6
   </footer>
 </div>
 
