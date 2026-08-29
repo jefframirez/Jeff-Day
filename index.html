@@ -8,8 +8,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Jeff's Day">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f7f6">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101514">
+<meta name="theme-color" id="tcL" media="(prefers-color-scheme: light)" content="#f4f7f6">
+<meta name="theme-color" id="tcD" media="(prefers-color-scheme: dark)" content="#101514">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,420;9..144,560&family=Albert+Sans:wght@400;500;600&display=swap">
 <style>
   :root{
@@ -105,7 +105,7 @@
     color:var(--now); font-variant-numeric:tabular-nums;
   }
   .nowline i{position:absolute; left:9.5px; top:-5px; width:10px; height:10px; border-radius:50%; background:var(--now)}
-  /* weather wash */
+  /* daylight wash */
   .sky{position:fixed; inset:0; z-index:-1; opacity:0; transition:opacity 1.4s ease; pointer-events:none}
   .sky.on{opacity:1}
   .wxnote{
@@ -207,7 +207,7 @@
           <button data-mode="auto">Auto &middot; match device</button>
           <button data-mode="light">Light</button>
           <button data-mode="dark">Dark</button>
-          <button data-mode="weather">Weather</button>
+          <button data-mode="daylight">Daylight</button>
           <div class="wxnote" id="wxnote"></div>
         </div>
       </div>
@@ -240,7 +240,7 @@
 
   <footer>
     Drag to move &middot; hold first on touch. Moves live on this device; tell Cathy to make them real in Todoist.
-    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-7
+    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-10
   </footer>
 </div>
 
@@ -250,34 +250,45 @@
   var MKEY="jeffs-day-mode", root=document.documentElement;
   var mbtns=document.querySelectorAll(".mode button");
   var skyA=document.getElementById("skyA"), skyB=document.getElementById("skyB");
-  var wxEl=document.getElementById("wxnote");
+  var sunEl=document.getElementById("wxnote");
   var mode="auto";
+  var LAT=34.1975, LON=-119.1771;
 
-  // weather → sky palette
-  var BASE={
-    clear:{h:202,s:58}, partly:{h:205,s:34}, overcast:{h:212,s:12},
-    fog:{h:205,s:8}, rain:{h:214,s:22}, snow:{h:208,s:14}, storm:{h:232,s:26}
-  };
-  var LABEL={clear:"clear",partly:"partly cloudy",overcast:"overcast",fog:"fog",rain:"rain",snow:"snow",storm:"storms"};
-  var PH={
-    dawn:  {h:24, w:.55, sm:.9,  sa:6,  lt:90, lb:97, dt:14, db:7},
-    day:   {h:0,  w:0,   sm:1,   sa:0,  lt:88, lb:97, dt:14, db:7},
-    golden:{h:30, w:.7,  sm:.95, sa:10, lt:89, lb:97, dt:15, db:8},
-    dusk:  {h:272,w:.75, sm:.8,  sa:4,  lt:88, lb:96, dt:17, db:8},
-    night: {h:228,w:.85, sm:.6,  sa:2,  lt:88, lb:96, dt:12, db:6}
-  };
-  function wgroup(c){
-    if(c===0)return "clear";
-    if(c===1||c===2)return "partly";
-    if(c===3)return "overcast";
-    if(c===45||c===48)return "fog";
-    if((c>=51&&c<=67)||(c>=80&&c<=82))return "rain";
-    if((c>=71&&c<=77)||c===85||c===86)return "snow";
-    if(c>=95)return "storm";
-    return "partly";
+  // --- solar elevation (NOAA low-precision) ---
+  function solarElevation(d){
+    var rad=Math.PI/180;
+    var n = d.getTime()/86400000 + 2440587.5 - 2451545.0;
+    var L = (280.460 + 0.9856474*n) % 360;
+    var g = ((357.528 + 0.9856003*n) % 360) * rad;
+    var lam = (L + 1.915*Math.sin(g) + 0.020*Math.sin(2*g)) * rad;
+    var eps = (23.439 - 0.0000004*n) * rad;
+    var dec = Math.asin(Math.sin(eps)*Math.sin(lam));
+    var ra  = Math.atan2(Math.cos(eps)*Math.sin(lam), Math.cos(lam));
+    var gmst = (18.697374558 + 24.06570982441908*n) % 24; if(gmst<0)gmst+=24;
+    var ha = gmst*15*rad + LON*rad - ra;
+    var la = LAT*rad;
+    return Math.asin(Math.sin(la)*Math.sin(dec) + Math.cos(la)*Math.cos(dec)*Math.cos(ha))/rad;
   }
-  function mixHue(a,b,w){var d=((b-a+540)%360)-180; return (a+d*w+360)%360;}
-  function hsl(h,s,l){return "hsl("+Math.round(h)+","+Math.round(s)+"%,"+Math.round(l)+"%)";}
+  function sunTimes(day){
+    var base=new Date(day.getFullYear(),day.getMonth(),day.getDate(),0,0,0);
+    var prev=solarElevation(base), rise=null, set=null;
+    for(var i=2;i<=1440;i+=2){
+      var t=new Date(base.getTime()+i*60000), e=solarElevation(t);
+      if(prev<-0.833&&e>=-0.833)rise=t;
+      if(prev>=-0.833&&e<-0.833)set=t;
+      prev=e;
+    }
+    return {rise:rise,set:set};
+  }
+  function clamp(v,a,b){return v<a?a:v>b?b:v;}
+  function lerp(a,b,t){return a+(b-a)*t;}
+  function mix(c1,c2,t){
+    return "rgb("+Math.round(lerp(c1[0],c2[0],t))+","+Math.round(lerp(c1[1],c2[1],t))+","+Math.round(lerp(c1[2],c2[2],t))+")";
+  }
+  // three-stop so blue never passes through dead gray on its way to gold
+  function mix3(a,m,b,t){
+    return t<=.5 ? mix(a,m,t*2) : mix(m,b,(t-.5)*2);
+  }
   function setSky(grad){
     if(!grad){skyA.classList.remove("on"); skyB.classList.remove("on"); return;}
     var showing=skyA.classList.contains("on")?skyA:skyB;
@@ -287,63 +298,81 @@
   }
   function clearSky(){
     ["--ground","--surface","--line"].forEach(function(t){root.style.removeProperty(t)});
-    setSky(null);
+    setSky(null); setBarTint(null);
+  }
+  var tcL=document.getElementById("tcL"), tcD=document.getElementById("tcD");
+  function setBarTint(c){
+    if(tcL)tcL.setAttribute("content", c||"#f4f7f6");
+    if(tcD)tcD.setAttribute("content", c||"#101514");
   }
 
-  var wx=null;
-  try{wx=JSON.parse(localStorage.getItem("jd-wx"))||null}catch(e){}
+  // day anchors: sun high (cool) -> sun low (warm)
+  var HI_TOP=[206,228,242], MD_TOP=[240,231,213], LO_TOP=[248,220,194];
+  var HI_BOT=[244,247,250], MD_BOT=[250,248,243], LO_BOT=[252,246,239];
+  var HI_SURF=[253,254,255], LO_SURF=[255,253,250];
+  var HI_LINE=[224,233,238], MD_LINE=[235,230,220], LO_LINE=[240,228,215];
+  // night anchors: just after sunset (violet) -> deep night (blue-black)
+  var DK_TOP=[40,36,56],  NT_TOP=[18,22,34];
+  var DK_BOT=[21,20,28],  NT_BOT=[10,12,17];
+  var DK_SURF=[31,30,40], NT_SURF=[22,25,32];
+  var DK_LINE=[43,41,54], NT_LINE=[33,37,45];
 
-  function updateWxNote(){
-    if(!wxEl)return;
-    wxEl.textContent = wx ? (LABEL[wgroup(wx.code)]+" · "+wx.temp+"°") : "checking sky…";
+  function fmtT(d){
+    if(!d)return "";
+    var h=d.getHours(), m=d.getMinutes(), ap=h>=12?"PM":"AM"; h=h%12; if(h===0)h=12;
+    return h+":"+(m<10?"0":"")+m+" "+ap;
   }
-  function fetchWx(force){
-    if(!force && wx && (Date.now()-wx.at) < 30*60*1000) return;
-    fetch("https://api.open-meteo.com/v1/forecast?latitude=34.1975&longitude=-119.1771&current=weather_code,is_day,temperature_2m&daily=sunrise,sunset&timezone=auto")
-      .then(function(r){return r.json()})
-      .then(function(d){
-        wx={at:Date.now(), code:d.current.weather_code, temp:Math.round(d.current.temperature_2m),
-            sunrise:d.daily.sunrise[0], sunset:d.daily.sunset[0]};
-        try{localStorage.setItem("jd-wx",JSON.stringify(wx))}catch(e){}
-        updateWxNote();
-        if(mode==="weather")paintWeather();
-      })["catch"](function(){});
+  var st=null, stDay=null;
+  function times(now){
+    var key=now.toDateString();
+    if(stDay!==key){st=sunTimes(now); stDay=key;}
+    return st;
   }
-  function paintWeather(){
-    if(!wx){root.removeAttribute("data-theme"); setSky(null); fetchWx(true); return;}
+  function paintDaylight(){
     var now=new Date();
-    var sr=new Date(wx.sunrise), ss=new Date(wx.sunset);
-    var m=now.getHours()*60+now.getMinutes();
-    var srm=sr.getHours()*60+sr.getMinutes(), ssm=ss.getHours()*60+ss.getMinutes();
-    var phase = m<srm-45 ? "night" : m<srm+60 ? "dawn" : m<ssm-75 ? "day" : m<ssm ? "golden" : m<ssm+55 ? "dusk" : "night";
-    var dark = (phase==="night"||phase==="dusk");
+    var elev=solarElevation(now);
+    var dark = elev < -2;
     root.setAttribute("data-theme", dark?"dark":"light");
-    var g=wgroup(wx.code), base=BASE[g], ph=PH[phase];
-    var colorful=Math.min(1,Math.max(.25,base.s/55));
-    // warm/cool phases own the hue; cloud cover only mutes it
-    var h=ph.w>0 ? ph.h : base.h;
-    var s=Math.max(5, Math.min(dark?30:64, ph.w>0 ? base.s*ph.sm+ph.sa*colorful : base.s));
-    var tl=dark?ph.dt:ph.lt, bl=dark?ph.db:ph.lb;
-    var top=hsl(h,s,tl), bot=hsl(h,s*0.5,bl);
-    setSky("linear-gradient(180deg,"+top+" 0%,"+bot+" 58%,"+bot+" 100%)");
+    var top,bot,surf,line;
+    if(!dark){
+      // warmth: 0 when sun is high, 1 at the horizon
+      var w=clamp((20-elev)/22, 0, 1);
+      w=w*w*(3-2*w); // ease
+      top=mix3(HI_TOP,MD_TOP,LO_TOP,w); bot=mix3(HI_BOT,MD_BOT,LO_BOT,w);
+      surf=mix(HI_SURF,LO_SURF,w); line=mix3(HI_LINE,MD_LINE,LO_LINE,w);
+    }else{
+      var d=clamp((-elev-2)/14, 0, 1);
+      d=d*d*(3-2*d);
+      top=mix(DK_TOP,NT_TOP,d); bot=mix(DK_BOT,NT_BOT,d);
+      surf=mix(DK_SURF,NT_SURF,d); line=mix(DK_LINE,NT_LINE,d);
+    }
+    setSky("linear-gradient(180deg,"+top+" 0%,"+bot+" 55%,"+bot+" 100%)");
     root.style.setProperty("--ground",bot);
-    root.style.setProperty("--surface", dark?hsl(h,Math.min(14,s*0.4),bl+7):hsl(h,40,99));
-    root.style.setProperty("--line", dark?hsl(h,10,bl+12):hsl(h,22,90));
+    root.style.setProperty("--surface",surf);
+    root.style.setProperty("--line",line);
+    setBarTint(top);
+    updateSunNote(now,elev);
+  }
+  function updateSunNote(now,elev){
+    if(!sunEl)return;
+    var t=times(now||new Date());
+    var e=(elev===undefined)?solarElevation(now||new Date()):elev;
+    sunEl.textContent = (e>=-2 ? "sunset "+fmtT(t.set) : "sunrise "+fmtT(t.rise));
   }
   function applyMode(m){
-    mode=(m==="light"||m==="dark"||m==="weather")?m:"auto";
+    mode=(m==="light"||m==="dark"||m==="daylight")?m:"auto";
     mbtns.forEach(function(b){b.classList.toggle("on",b.dataset.mode===mode);});
     if(mode==="light"||mode==="dark"){root.setAttribute("data-theme",mode); clearSky();}
     else if(mode==="auto"){root.removeAttribute("data-theme"); clearSky();}
-    else {paintWeather(); fetchWx(false);}
+    else {paintDaylight();}
   }
   try{mode=localStorage.getItem(MKEY)||"auto"}catch(e){}
+  if(mode==="weather")mode="daylight";
   applyMode(mode);
-  updateWxNote();
-  setInterval(function(){ if(mode==="weather")paintWeather(); },5*60*1000);
-  setInterval(function(){ if(mode==="weather")fetchWx(false); },30*60*1000);
+  updateSunNote();
+  setInterval(function(){ if(mode==="daylight")paintDaylight(); },90*1000);
   document.addEventListener("visibilitychange",function(){
-    if(!document.hidden && mode==="weather"){paintWeather(); fetchWx(false);}
+    if(!document.hidden && mode==="daylight")paintDaylight();
   });
   var gear=document.getElementById("gear"), menu=document.getElementById("modemenu");
   function closeMenu(){menu.classList.remove("open"); gear.setAttribute("aria-expanded","false");}
