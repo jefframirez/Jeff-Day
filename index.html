@@ -86,6 +86,11 @@
   }
   .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--family)}
   .chip.warm .dot{background:var(--kylee)}
+  .livewarn{
+    margin:12px 0 0; padding:8px 11px; border-radius:9px;
+    background:var(--amber-soft); color:var(--amber);
+    font-size:.78rem; font-weight:600; line-height:1.35;
+  }
 
   /* ---- timeline ---- */
   .board{position:relative; margin-top:30px}
@@ -217,6 +222,7 @@
       <span class="chip"><span class="dot"></span>Kids day</span>
       <span class="chip warm"><span class="dot"></span>Kylee out 4:00&ndash;8:30</span>
     </div>
+    <div class="livewarn" id="livewarn" hidden></div>
   </header>
 
   <div class="board" id="board"></div>
@@ -236,7 +242,7 @@
 
   <footer>
     Live from Todoist &middot; refreshes automatically. Checking a task off here closes it there too.
-    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-13
+    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-14
   </footer>
 </div>
 
@@ -621,15 +627,31 @@
     render();
   }
 
+  var warnEl=document.getElementById("livewarn");
+  function warn(msg){
+    if(!warnEl)return;
+    if(!msg){warnEl.hidden=true; warnEl.textContent=""; return;}
+    warnEl.hidden=false; warnEl.textContent=msg;
+  }
+
   function fetchToday(){
     fetch(WORKER+"/today?date="+DAY,{headers:{"X-App-Key":APPKEY}})
-      .then(function(r){ if(!r.ok)throw new Error("status "+r.status); return r.json(); })
+      .then(function(r){
+        return r.text().then(function(txt){
+          if(!r.ok)throw new Error("Todoist link returned "+r.status+" — "+txt.slice(0,140));
+          try{return JSON.parse(txt)}catch(e){throw new Error("bad response from the Todoist link");}
+        });
+      })
       .then(function(data){
         var tasks=data.tasks||[];
         try{localStorage.setItem(CKEY,JSON.stringify(tasks))}catch(e){}
+        warn(null);
         applyTasks(tasks);
       })
-      .catch(function(e){ console.error("live fetch failed",e); });
+      .catch(function(e){
+        console.error("live fetch failed",e);
+        warn("Not live right now: "+(e.message||e)+". Showing the last version I had.");
+      });
   }
 
   var cached=null;
