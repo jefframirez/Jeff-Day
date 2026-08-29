@@ -227,7 +227,7 @@
 
   <footer>
     Drag to move &middot; hold first on touch. Moves live on this device; tell Cathy to make them real in Todoist.
-    <br><button id="reset">Reset to Cathy's plan</button>
+    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-5
   </footer>
 </div>
 
@@ -268,9 +268,12 @@
 
   // bar:true draws a duration bar on the rail
   var items=[
-    {id:"meds", type:"task", start:8*60,     dur:15,  name:"Morning meds"},
+    {id:"meds", type:"task", start:8*60,     dur:30,  name:"Breakfast · morning meds"},
     {id:"car",  type:"task", start:9*60,     dur:15,  name:"Call Enterprise re convertible"},
     {id:"fun",  type:"task", start:10*60,    dur:270, bar:true, name:"Fun block · PCH or SkyZone + beach"},
+    {id:"snk1", type:"task", start:10*60+30, dur:15,  name:"Snack round 1"},
+    {id:"lunch",type:"task", start:12*60+30, dur:30,  name:"Lunch out with the kids"},
+    {id:"snk2", type:"task", start:15*60,    dur:15,  name:"Snack round 2"},
     {id:"cave", type:"task", start:15*60+30, dur:60,  bar:true, name:"Cave video with Ezra"},
     {id:"fold", type:"task", start:17*60+30, dur:15,  name:"Fold the kids’ clothes"},
     {id:"din",  type:"task", start:18*60+30, dur:60,  bar:true, name:"Dinner with the kids · evening antibiotic"},
