@@ -248,7 +248,7 @@
     @keyframes rise{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
   }
 
-  /* ---- add + edit (v8.29-22) ---- */
+  /* ---- add + edit (v8.29-23) ---- */
   .gap.tappable{pointer-events:auto; cursor:pointer}
   .gap.tappable:active{color:var(--accent)}
   .ghost{position:absolute; left:42px; right:0; height:0; display:none; z-index:6; pointer-events:none}
@@ -339,9 +339,9 @@
   <header>
     <div class="titlerow">
       <h1>Saturday, August&nbsp;29</h1>
-      <div class="vtog" id="vtog" role="group" aria-label="View">
-        <button data-view="rail" aria-label="Timeline view"><svg viewBox="0 0 24 24"><path d="M7 3v18"/><circle cx="7" cy="8" r="2.1"/><circle cx="7" cy="16" r="2.1"/><path d="M12 8h7M12 16h7"/></svg></button>
-        <button data-view="agenda" aria-label="List view"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h11"/></svg></button>
+      <div class="vtog" id="vtog" role="group" aria-label="Rail or Agenda">
+        <button data-view="rail" aria-label="Rail view" title="Rail"><svg viewBox="0 0 24 24"><path d="M7 3v18"/><circle cx="7" cy="8" r="2.1"/><circle cx="7" cy="16" r="2.1"/><path d="M12 8h7M12 16h7"/></svg></button>
+        <button data-view="agenda" aria-label="Agenda view" title="Agenda"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h11"/></svg></button>
       </div>
       <div class="modebar">
         <button class="gear" id="gear" aria-label="Settings" aria-expanded="false">
@@ -383,7 +383,7 @@
 
   <footer>
     Live from Todoist &middot; refreshes automatically. Checking a task off here closes it there too.
-    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-22
+    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-23
   </footer>
 </div>
 
@@ -1012,7 +1012,7 @@
   document.addEventListener("visibilitychange",function(){ if(!document.hidden) fetchToday(); });
 
 
-  // ---------- add + edit (v8.29-22) ----------
+  // ---------- add + edit (v8.29-23) ----------
   var PKEY="jd2-projects", LPKEY="jd2-lastproj";
   var projects=[], justDragged=0, gh=null, composeMin=null;
   try{projects=JSON.parse(localStorage.getItem(PKEY))||[]}catch(e){}
