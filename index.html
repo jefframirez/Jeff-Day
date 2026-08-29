@@ -239,8 +239,8 @@
   </section>
 
   <footer>
-    Drag to move &middot; hold first on touch. Checkboxes on synced tasks close them in Todoist too.
-    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-11
+    Drag to move &middot; hold first on touch. Checking a task off here closes it in Todoist.
+    <br><button id="reset">Reset to Cathy's plan</button> &middot; v8.29-12
   </footer>
 </div>
 
@@ -413,11 +413,11 @@
   // bar:true draws a duration bar on the rail
   var items=[
     {id:"meds", type:"task", start:8*60,     dur:30,  name:"Breakfast · morning meds", tid:["6hPH75mr2mjH69Jq","6hPH765PG6fcwRQq"]},
-    {id:"car",  type:"task", start:9*60,     dur:15,  name:"Call Enterprise re convertible"},
-    {id:"fun",  type:"task", start:10*60,    dur:270, bar:true, name:"Fun block · PCH or SkyZone + beach"},
-    {id:"snk1", type:"task", start:10*60+30, dur:15,  name:"Snack round 1"},
-    {id:"lunch",type:"task", start:12*60+30, dur:30,  name:"Lunch out with the kids"},
-    {id:"snk2", type:"task", start:15*60,    dur:15,  name:"Snack round 2"},
+    {id:"car",  type:"task", start:9*60,     dur:15,  name:"Call Enterprise re convertible", tid:["6hPJ6C924PJxcCRv"]},
+    {id:"fun",  type:"task", start:10*60,    dur:270, bar:true, name:"Fun block · PCH or SkyZone + beach", tid:["6hPJ6C8CxRqG375v"]},
+    {id:"snk1", type:"task", start:10*60+30, dur:15,  name:"Snack round 1", tid:["6hPJ6CG6RMMjc3Hv"]},
+    {id:"lunch",type:"task", start:12*60+30, dur:30,  name:"Lunch out with the kids", tid:["6hPJ6C9Qm33hg73M"]},
+    {id:"snk2", type:"task", start:15*60,    dur:15,  name:"Snack round 2", tid:["6hPJ6CHHVfGM44WM"]},
     {id:"cave", type:"task", start:15*60+30, dur:60,  bar:true, name:"Cave video with Ezra", tid:["6hPH75p6hc4wJMxM"]},
     {id:"fold", type:"task", start:17*60+30, dur:15,  name:"Fold the kids’ clothes", tid:["6hPH75wJJ6PhpmQv"]},
     {id:"din",  type:"task", start:18*60+30, dur:60,  bar:true, name:"Dinner with the kids · evening antibiotic", tid:["6hPH75xFFfWqPmJq"]},
