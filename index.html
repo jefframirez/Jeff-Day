@@ -108,6 +108,28 @@
     font-size:.78rem; font-weight:600; line-height:1.35;
   }
 
+  /* ---- carried over ---- */
+  .carried{margin-top:24px; padding:0 2px}
+  .carried h2{margin-bottom:6px}
+  .citem{display:flex; align-items:flex-start; gap:11px; padding:8px 0}
+  .citem .box{margin-top:1px}
+  .citem .cbody{flex:1; min-width:0}
+  .citem .cname{font-size:.98rem; font-weight:600}
+  .citem.done .cname{text-decoration:line-through; color:var(--faint)}
+  .citem.done{opacity:.5}
+  .cwhen{
+    display:inline-block; font-size:.66rem; font-weight:700; letter-spacing:.04em;
+    color:var(--amber); background:var(--amber-soft); border-radius:6px;
+    padding:2px 7px; margin-top:4px;
+  }
+  .cmove{
+    font:inherit; font-size:.72rem; font-weight:700; color:var(--accent);
+    background:var(--accent-soft); border:0; border-radius:8px; padding:6px 11px;
+    flex:none; margin-top:1px; cursor:pointer;
+  }
+  .cmove:disabled{opacity:.5}
+  .cnote{font-size:.72rem; color:var(--faint); margin:6px 0 0}
+
   /* ---- view toggle ---- */
   .vtog{
     display:inline-flex; gap:2px; padding:2px; border-radius:9px;
@@ -263,7 +285,7 @@
     @keyframes rise{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
   }
 
-  /* ---- add + edit (v8.29-25) ---- */
+  /* ---- add + edit (v8.29-27) ---- */
   .gap.tappable{pointer-events:auto; cursor:pointer}
   .gap.tappable:active{color:var(--accent)}
   .ghost{position:absolute; left:42px; right:0; height:0; display:none; z-index:6; pointer-events:none}
@@ -381,6 +403,12 @@
     <div class="livewarn" id="livewarn" hidden></div>
   </header>
 
+  <section class="carried" id="carried" hidden>
+    <h2>Carried over</h2>
+    <div id="carriedList"></div>
+    <p class="cnote">Still sitting on their original date. Nothing moves on its own.</p>
+  </section>
+
   <div class="board" id="board"></div>
   <div class="agenda" id="agenda" hidden></div>
 
@@ -399,7 +427,7 @@
 
   <footer>
     Live from Todoist &middot; refreshes automatically. Checking a task off here closes it there too.
-    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-25
+    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-27
   </footer>
 </div>
 
@@ -584,7 +612,7 @@
   var DAY=ANCHOR;          // the day being looked at
   var RKEY="jd2-range-"+ANCHOR;
   var OKEY, DKEY, CKEY;
-  var overrides={}, done={}, rangeDays=null;
+  var overrides={}, done={}, rangeDays=null, overdue=[];
   var VKEY="jeffs-day-view", view="rail";
   try{ if(localStorage.getItem(VKEY)==="agenda")view="agenda"; }catch(e){}
   function loadDayState(){
@@ -976,6 +1004,7 @@
       nl=null; e1=null; e2=null;
       board.hidden=true; agendaEl.hidden=false;
       board.style.height="0px";
+      renderCarried();
       renderAgenda();
       liveAnytime.forEach(renderAnytimeEl);
       return;
@@ -988,6 +1017,7 @@
     nl=document.createElement("div"); nl.className="nowline"; nl.innerHTML='<i></i><em></em><span class="ln"></span>'; board.appendChild(nl);
     gh=document.createElement("div"); gh.className="ghost"; gh.innerHTML="<span></span>"; board.appendChild(gh);
 
+    renderCarried();
     items.forEach(renderItemEl);
     liveAnytime.forEach(renderAnytimeEl);
 
@@ -1083,6 +1113,87 @@
     selectDay(dateAdd(ANCHOR,next));
   }
 
+  // ---------- carried over ----------
+  var carriedEl=document.getElementById("carried");
+  var carriedList=document.getElementById("carriedList");
+
+  function dueLabel(key){
+    var q=dateParts(key), a=dateParts(ANCHOR);
+    var da=Date.UTC(a.year,a.mon,a.dom), db=Date.UTC(q.year,q.mon,q.dom);
+    var gap=Math.round((da-db)/86400000);
+    if(gap===1)return "Due yesterday";
+    if(gap<7)return "Due "+["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][q.dow];
+    return "Due "+MO[q.mon].slice(0,3)+" "+q.dom;
+  }
+
+  function moveToToday(t,btn){
+    // keep the time of day if it had one, otherwise land it undated on today
+    var due=ANCHOR;
+    if(t.due&&t.due.indexOf("T")>-1)due=ANCHOR+"T"+t.due.slice(11,19)+offsetStr();
+    btn.disabled=true; btn.textContent="Moving";
+    fetch(WORKER+"/reschedule",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","X-App-Key":APPKEY},
+      body:JSON.stringify({id:t.id,due:due})
+    })
+    .then(function(r){
+      return r.text().then(function(txt){
+        if(r.status===409)throw new Error("that one repeats, so moving it would break the repeat");
+        if(!r.ok)throw new Error("Todoist said "+r.status);
+        return txt;
+      });
+    })
+    .then(function(){ warn(null); fetchToday(); })
+    .catch(function(e){
+      warn("Couldn't move that: "+(e.message||e)+".");
+      btn.disabled=false; btn.textContent="Today";
+    });
+  }
+
+  function renderCarried(){
+    if(!carriedEl)return;
+    carriedList.innerHTML="";
+    var show=(DAY===ANCHOR)&&overdue.length>0;
+    carriedEl.hidden=!show;
+    if(!show)return;
+    overdue.forEach(function(t){
+      var id="td-"+t.id;
+      var row=document.createElement("div");
+      row.className="citem"+(done[id]?" done":"");
+      var box=document.createElement("span");
+      box.className="box"; box.innerHTML="&#10003;";
+      var bodyEl=document.createElement("div"); bodyEl.className="cbody";
+      var nm=document.createElement("div"); nm.className="cname"; nm.textContent=t.content;
+      var when=document.createElement("span"); when.className="cwhen";
+      when.textContent=dueLabel(t.due.slice(0,10))+(t.recurring?" \u00b7 repeats":"");
+      bodyEl.appendChild(nm); bodyEl.appendChild(when);
+
+      box.addEventListener("click",function(ev){
+        ev.stopPropagation();
+        row.classList.toggle("done");
+        var isDone=row.classList.contains("done");
+        done[id]=isDone;
+        try{localStorage.setItem(DKEY,JSON.stringify(done))}catch(e){}
+        syncTodoist([t.id],isDone);
+      });
+      nm.addEventListener("click",function(ev){
+        ev.stopPropagation();
+        startEdit(nm,t.content,function(next){
+          t.content=next; nm.textContent=next; pushRename(t.id,next);
+        });
+      });
+
+      row.appendChild(box); row.appendChild(bodyEl);
+      if(!t.recurring){
+        var mv=document.createElement("button");
+        mv.className="cmove"; mv.type="button"; mv.textContent="Today";
+        mv.addEventListener("click",function(ev){ev.stopPropagation(); moveToToday(t,mv);});
+        row.appendChild(mv);
+      }
+      carriedList.appendChild(row);
+    });
+  }
+
   var warnEl=document.getElementById("livewarn");
   function warn(msg){
     if(!warnEl)return;
@@ -1112,7 +1223,8 @@
       .then(function(data){
         if(!data||!data.days)throw new Error("no days in range response");
         rangeDays=data.days;
-        try{localStorage.setItem(RKEY,JSON.stringify(rangeDays))}catch(e){}
+        overdue=data.overdue||[];
+        try{localStorage.setItem(RKEY,JSON.stringify({days:rangeDays,overdue:overdue}))}catch(e){}
         var mine=rangeDays[DAY]||[];
         try{localStorage.setItem(CKEY,JSON.stringify(mine))}catch(e){}
         warn(null);
@@ -1129,7 +1241,10 @@
       });
   }
 
-  try{rangeDays=JSON.parse(localStorage.getItem(RKEY))||null}catch(e){rangeDays=null;}
+  try{
+    var boot=JSON.parse(localStorage.getItem(RKEY));
+    if(boot&&boot.days){ rangeDays=boot.days; overdue=boot.overdue||[]; }
+  }catch(e){ rangeDays=null; }
   paintHeader(); paintTicker();
   var cached=null;
   try{cached=JSON.parse(localStorage.getItem(CKEY))}catch(e){}
@@ -1141,7 +1256,7 @@
   document.addEventListener("visibilitychange",function(){ if(!document.hidden) fetchToday(); });
 
 
-  // ---------- add + edit (v8.29-25) ----------
+  // ---------- add + edit (v8.29-27) ----------
   var PKEY="jd2-projects", LPKEY="jd2-lastproj";
   var projects=[], justDragged=0, gh=null, composeMin=null;
   try{projects=JSON.parse(localStorage.getItem(PKEY))||[]}catch(e){}
