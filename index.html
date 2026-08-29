@@ -194,7 +194,7 @@
     @keyframes rise{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
   }
 
-  /* ---- add + edit (v8.29-16) ---- */
+  /* ---- add + edit (v8.29-17) ---- */
   .gap.tappable{pointer-events:auto; cursor:pointer}
   .gap.tappable:active{color:var(--accent)}
   .ghost{position:absolute; left:42px; right:0; height:0; display:none; z-index:6; pointer-events:none}
@@ -213,6 +213,22 @@
     display:grid; place-items:center; padding:0 0 3px;
   }
   .fab.dragging{cursor:grabbing; opacity:.94}
+  .fab.overhome{opacity:.4}
+  .fabhome{
+    position:fixed; right:calc(18px + env(safe-area-inset-right));
+    bottom:calc(22px + env(safe-area-inset-bottom));
+    width:54px; height:54px; border-radius:50%; z-index:29;
+    border:2px dashed var(--faint); color:var(--faint);
+    display:none; place-items:center; pointer-events:none; box-sizing:border-box;
+    transition:transform .16s ease, border-color .16s ease, color .16s ease, background-color .16s ease;
+  }
+  .fabhome.on{display:grid}
+  .fabhome.armed{
+    border-style:solid; border-color:#c0563f; color:#c0563f;
+    background:rgba(192,86,63,.14); transform:scale(1.12);
+  }
+  .fabhome svg{width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round}
+  @media (prefers-reduced-motion:reduce){ .fabhome{transition:none} }
   .fab:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
   .scrim{position:fixed; inset:0; z-index:35; background:rgba(20,30,28,.28); display:none}
   .scrim.on{display:block}
@@ -295,11 +311,12 @@
 
   <footer>
     Live from Todoist &middot; refreshes automatically. Checking a task off here closes it there too.
-    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-16
+    <br><button id="reset">Put dragged rows back</button> &middot; v8.29-17
   </footer>
 </div>
 
 <div class="scrim" id="scrim"></div>
+<div class="fabhome" id="fabhome" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></div>
 <button class="fab" id="fab" aria-label="Add a task">+</button>
 <div class="composer" id="composer" role="dialog" aria-label="New task">
   <div class="crow">
@@ -519,8 +536,8 @@
     var first=starts.length?Math.min.apply(null,starts):(now!=null?now:7*60);
     var last =ends.length  ?Math.max.apply(null,ends)  :(now!=null?now:23*60);
     if(now!=null){ first=Math.min(first,now); last=Math.max(last,now); }
-    START=Math.max(0,Math.floor((first-20)/60)*60);
-    END=Math.min(24*60,Math.max(START+120,Math.ceil((last+30)/60)*60));
+    START=Math.max(0,Math.floor((first-15)/30)*30);
+    END=Math.min(24*60,Math.max(START+120,Math.ceil((last+20)/30)*30));
   }
   function fmt(min){
     var h=Math.floor(min/60), m=min%60, ap=h>=12?"PM":"AM";
@@ -774,13 +791,14 @@
   document.addEventListener("visibilitychange",function(){ if(!document.hidden) fetchToday(); });
 
 
-  // ---------- add + edit (v8.29-16) ----------
+  // ---------- add + edit (v8.29-17) ----------
   var PKEY="jd2-projects", LPKEY="jd2-lastproj";
   var projects=[], justDragged=0, gh=null, composeMin=null;
   try{projects=JSON.parse(localStorage.getItem(PKEY))||[]}catch(e){}
 
   var scrim=document.getElementById("scrim");
   var fab=document.getElementById("fab");
+  var fabhome=document.getElementById("fabhome");
   var composer=document.getElementById("composer");
   var cName=document.getElementById("cName");
   var cTime=document.getElementById("cTime");
@@ -903,15 +921,34 @@
     var r=board.getBoundingClientRect();
     return snap((cy-r.top-14)/PPM+START);
   }
+  var HOME_LEAVE=72, HOME_BACK=48;
   fab.addEventListener("pointerdown",function(e){
     if(e.button)return;
-    var sy=e.clientY, dragging=false, dropMin=null;
+    var sx=e.clientX, sy=e.clientY;
+    var dragging=false, dropMin=null, leftHome=false, armed=false;
     try{fab.setPointerCapture(e.pointerId)}catch(err){}
     function mv(ev){
-      if(!dragging&&Math.abs(ev.clientY-sy)<8)return;
-      dragging=true;
-      fab.classList.add("dragging");
-      fab.style.transform="translateY("+(ev.clientY-sy)+"px)";
+      var dx=(ev.clientX||0)-sx, dy=(ev.clientY||0)-sy;
+      if(!dragging&&Math.abs(dy)<8&&Math.abs(dx)<8)return;
+      if(!dragging){
+        dragging=true;
+        fab.classList.add("dragging");
+        if(fabhome)fabhome.classList.add("on");
+      }
+      fab.style.transform="translate("+dx+"px,"+dy+"px)";
+
+      // you have to leave home before coming back to it counts as a cancel
+      var dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist>HOME_LEAVE)leftHome=true;
+      armed=leftHome&&dist<HOME_BACK;
+      if(fabhome)fabhome.classList.toggle("armed",armed);
+      fab.classList.toggle("overhome",armed);
+
+      if(armed){
+        dropMin=null;
+        if(gh)gh.style.display="none";
+        return;
+      }
       dropMin=Math.max(START,Math.min(END-15,minFromClientY(ev.clientY)));
       if(gh){
         gh.style.display="block";
@@ -924,8 +961,11 @@
       document.removeEventListener("pointerup",up);
       document.removeEventListener("pointercancel",up);
       fab.classList.remove("dragging");
+      fab.classList.remove("overhome");
       fab.style.transform="";
       if(gh)gh.style.display="none";
+      if(fabhome){fabhome.classList.remove("on"); fabhome.classList.remove("armed");}
+      if(armed)return;                     // dropped back on the X, so nothing happens
       openComposer(dragging&&dropMin!=null?dropMin:nextSlot());
     }
     document.addEventListener("pointermove",mv);
